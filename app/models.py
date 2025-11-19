@@ -3,9 +3,10 @@ import datetime
 
 class User(Document):
     meta = {"collection": "users"}
+
     username = StringField(required=True)
     mobile = StringField(required=True, unique=True)
-    email = EmailField()
+   
     password_hash = StringField(required=True)
     role = StringField(choices=["player","admin"], default="player")
     balance = FloatField(default=0.0)
