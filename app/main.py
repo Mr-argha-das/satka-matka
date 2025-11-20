@@ -31,10 +31,10 @@ app.include_router(admin_routes.router)
 app.include_router(user_routes.router,)
 app.include_router(withdrawal_routes.router)
 
-app.include_router(bids_routes.router, tags=["Bids"])
-app.include_router(chart.router, tags=["Charts"])
-app.include_router(admin_result.router, tags=["Admin Results"])
-app.include_router(market.router, tags=["Market"])
+app.include_router(bids_routes.router)
+app.include_router(chart.router)
+app.include_router(admin_result.router)
+app.include_router(market.router)
 
 
 

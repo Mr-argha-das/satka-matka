@@ -4,7 +4,7 @@ import uuid
 from ..models import Wallet, Transaction
 from ..auth import get_current_user
 
-router = APIRouter(prefix="/user", tags=["User Wallet"])
+router = APIRouter(prefix="/user")
 
 
 def get_or_create_wallet(uid):

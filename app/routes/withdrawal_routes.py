@@ -4,7 +4,7 @@ from ..models import Wallet
 from ..models import Withdrawal
 from ..auth import get_current_user, require_admin
 
-router = APIRouter(prefix="/withdraw", tags=["Withdrawals"])
+router = APIRouter(prefix="/withdraw")
 
 
 def get_or_create_wallet(user_id: str):

@@ -4,7 +4,7 @@ from ..auth import require_admin
 from ..models import Draw, Market, Result, Bid, Wallet, Transaction
 from ..schemas import DrawCreate
 
-router = APIRouter(prefix="/admin", tags=["Admin"])
+router = APIRouter(prefix="/admin")
 
 GAME_RATES = {
     "single": 9,
