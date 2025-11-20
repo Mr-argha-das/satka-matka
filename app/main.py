@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware # <-- 1. Import CORSMiddlewar
 from fastapi.staticfiles import StaticFiles
 from mongoengine import connect
 from app.config import settings
-from app.routes import auth_routes, admin_routes, user_routes, withdrawal_routes, bids_routes, chart, admin_result, market, passbook, images_routes, deposit_qr
+from app.routes import auth_routes, admin_routes, user_routes, withdrawal_routes, bids_routes, chart, admin_result, market, jackpot,passbook, images_routes, deposit_qr
 import os
 
 app = FastAPI(title="Matka Satka Backend")
@@ -36,6 +36,7 @@ app.include_router(market.router)
 app.include_router(images_routes.router)
 app.include_router(deposit_qr.router)
 app.include_router(passbook.router)
+app.include_router(jackpot.router)
 
 
 @app.get("/")

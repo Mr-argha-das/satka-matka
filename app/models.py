@@ -90,3 +90,23 @@ class DepositQR(Document):
     amount = FloatField(default=0)
     created_at = DateTimeField(default=datetime.datetime.utcnow)
     updated_at = DateTimeField(default=datetime.datetime.utcnow)
+
+
+class StarlineSlot(Document):
+    meta = {"collection": "starline_slots"}
+
+    name = StringField(required=True)                # e.g., "Slot 1"
+    start_time = StringField(required=True)          # "10:00"
+    end_time = StringField(required=True)            # "10:15" (admin decides)
+    games = ListField(StringField())                 # Allowed games
+    is_active = BooleanField(default=True)
+
+
+class JackpotSlot(Document):
+    meta = {"collection": "jackpot_slots"}
+
+    name = StringField(required=True)
+    start_time = StringField(required=True)
+    end_time = StringField(required=True)
+    games = ListField(StringField())
+    is_active = BooleanField(default=True)
