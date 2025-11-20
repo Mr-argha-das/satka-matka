@@ -1,11 +1,13 @@
-from fastapi import APIRouter,Depends
-from ..models import Market
-from ..models import Result
-from ..auth import get_current_user, require_admin
+from fastapi import APIRouter, Depends, HTTPException
+from ..models import Market, Result, Bid, Wallet, User
+from ..auth import require_admin
+import datetime
 
-from ..models import Bid
-from ..models import Result
-from ..models import Wallet
+router = APIRouter(prefix="/admin/result")
+
+# --------------------------
+# GAME RATES
+# --------------------------
 GAME_RATES = {
     "single": 9,
     "jodi": 95,
@@ -18,53 +20,137 @@ GAME_RATES = {
     "half_sangam": 1200,
     "full_sangam": 10000,
 }
-def settle_results(market_id):
-    market = Result.objects.filter(market_id=market_id).first()
 
-    open_digit = market.open_digit
-    close_digit = market.close_digit
-    open_panna = market.open_panna
-    close_panna = market.close_panna
+
+# -----------------------------------------------------
+#  SETTLEMENT LOGIC (ALL GAME TYPES + SANGAM INCLUDED)
+# -----------------------------------------------------
+def settle_results(market_id: str, result_obj: Result):
+
+    open_digit = result_obj.open_digit
+    close_digit = result_obj.close_digit
+    open_panna = result_obj.open_panna
+    close_panna = result_obj.close_panna
 
     bids = Bid.objects(market_id=market_id)
 
     for bid in bids:
         win = False
 
+        # --------------------
+        # SINGLE DIGIT
+        # --------------------
         if bid.game_type == "single" and bid.digit == open_digit:
             win = True
 
+        # --------------------
+        # JODI
+        # --------------------
         if bid.game_type == "jodi" and bid.digit == open_digit + close_digit:
             win = True
 
-        if bid.game_type == "single_panna" and bid.digit == open_panna:
+        # --------------------
+        # PANNA (Open)
+        # --------------------
+        if bid.game_type in ["single_panna", "sp"] and bid.digit == open_panna:
             win = True
 
-        if bid.game_type == "double_panna" and bid.digit == close_panna:
+        # --------------------
+        # PANNA (Close)
+        # --------------------
+        if bid.game_type in ["double_panna", "dp"] and bid.digit == close_panna:
             win = True
 
+        # --------------------
+        # TRIPLE PANNA
+        # --------------------
+        if bid.game_type in ["triple_panna", "tp"]:
+            if bid.session == "open" and bid.digit == open_panna:
+                win = True
+            if bid.session == "close" and bid.digit == close_panna:
+                win = True
+
+        # --------------------
+        # HALF SANGAM (Open panna + Close digit)
+        # EXAMPLE: 123-4  == open_panna-close_digit
+        # --------------------
+        if bid.game_type == "half_sangam":
+            panna, digit = bid.digit.split("-")
+
+            if panna == open_panna and digit == close_digit:
+                win = True
+
+        # --------------------
+        # FULL SANGAM (Open panna + Close panna)
+        # EXAMPLE: 123-678
+        # --------------------
+        if bid.game_type == "full_sangam":
+            op, cp = bid.digit.split("-")
+            if op == open_panna and cp == close_panna:
+                win = True
+
+        # -----------------------
+        # If Won → Add Balance
+        # -----------------------
         if win:
-            rate = GAME_RATES.get(bid.game_type)
+            rate = GAME_RATES.get(bid.game_type, 0)
             win_amount = bid.points * rate
 
             wallet = Wallet.objects(user_id=bid.user_id).first()
-            wallet.update(inc__balance=win_amount)
+            if wallet:
+                wallet.update(inc__balance=win_amount)
 
 
-
-router = APIRouter(prefix="/admin/result")
+# -----------------------------------------------------
+#      DECLARE RESULT API (ADMIN)
+# -----------------------------------------------------
 
 @router.post("/declare")
-def declare(market_id: str, open_result: str = None, close_result: str = None, user=Depends(require_admin)):
+def declare_result(
+    market_id: str,
+    date: str,
+    open_digit: str = "-",
+    close_digit: str = "-",
+    open_panna: str = "-",
+    close_panna: str = "-",
+    admin=Depends(require_admin)
+):
 
-    market = Market.objects.get(id=market_id)
-    
-    if open_result:
-        market.update(open_result=open_result)
+    # Validate Market
+    try:
+        Market.objects.get(id=market_id)
+    except:
+        raise HTTPException(404, "Market not found")
 
-    if close_result:
-        market.update(close_result=close_result)
+    # Check if result already exists for this date
+    existing = Result.objects(market_id=market_id, date=date).first()
+    if existing:
+        result_obj = existing
+        result_obj.update(
+            open_digit=open_digit,
+            close_digit=close_digit,
+            open_panna=open_panna,
+            close_panna=close_panna,
+        )
+    else:
+        result_obj = Result(
+            market_id=market_id,
+            date=date,
+            open_digit=open_digit,
+            close_digit=close_digit,
+            open_panna=open_panna,
+            close_panna=close_panna,
+        ).save()
 
-    settle_results(market_id)   # AUTO SETTLEMENT
+    # Run Settlement
+    settle_results(market_id, result_obj)
 
-    return {"msg": "Result updated"}
+    return {
+        "msg": "Result declared & settlement completed",
+        "market_id": market_id,
+        "date": date,
+        "open_digit": open_digit,
+        "close_digit": close_digit,
+        "open_panna": open_panna,
+        "close_panna": close_panna
+    }
