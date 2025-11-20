@@ -36,7 +36,6 @@ app.include_router(chart.router, tags=["Charts"])
 app.include_router(admin_result.router, tags=["Admin Results"])
 app.include_router(market.router, tags=["Market"])
 
->>>>>>> 0c87d6aaae1a4527e142f5aa611ed40f2576c2c5
 
 @app.get("/")
 def root():
