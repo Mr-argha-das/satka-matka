@@ -82,3 +82,11 @@ class Result(Document):
     close_panna = StringField(default="-")
     open_digit = StringField(default="-")
     close_digit = StringField(default="-")
+
+class DepositQR(Document):
+    user_id = StringField(required=True)
+    image_url = StringField(required=True)
+    status = StringField(default="PENDING")  # PENDING, SUCCESS, FAILED
+    amount = FloatField(default=0)
+    created_at = DateTimeField(default=datetime.datetime.utcnow)
+    updated_at = DateTimeField(default=datetime.datetime.utcnow)
