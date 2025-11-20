@@ -15,7 +15,6 @@ def get_or_create_wallet(user_id: str):
     return wallet
 
 
-# ---------------- USER REQUEST WITHDRAW -------------------
 
 @router.post("/request")
 def request_withdraw(
@@ -32,7 +31,6 @@ def request_withdraw(
     if wallet.balance < amount:
         raise HTTPException(400, "Insufficient balance")
 
-    # Create withdrawal request
     wd = Withdrawal(
         user_id=str(user.id),
         amount=amount,
@@ -47,7 +45,7 @@ def request_withdraw(
     }
 
 
-# --------------- USER VIEW OWN WITHDRAW REQUESTS ------------
+
 
 @router.get("/my")
 def my_withdrawals(user=Depends(get_current_user)):
@@ -65,7 +63,7 @@ def my_withdrawals(user=Depends(get_current_user)):
     ]
 
 
-# ---------------- ADMIN SEE PENDING WITHDRAWALS -------------
+
 
 @router.get("/admin/pending", dependencies=[Depends(require_admin)])
 def admin_pending():
@@ -83,7 +81,7 @@ def admin_pending():
     ]
 
 
-# ----------------- ADMIN APPROVE WITHDRAW --------------------
+
 
 @router.post("/admin/approve", dependencies=[Depends(require_admin)])
 def approve_withdraw(wd_id: str = Form(...)):
@@ -112,7 +110,7 @@ def approve_withdraw(wd_id: str = Form(...)):
     return {"message": "Withdrawal Approved", "new_balance": wallet.balance}
 
 
-# ----------------- ADMIN REJECT WITHDRAW --------------------
+
 
 @router.post("/admin/reject", dependencies=[Depends(require_admin)])
 def reject_withdraw(wd_id: str = Form(...)):
