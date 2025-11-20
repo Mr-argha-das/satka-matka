@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Form
+from fastapi import APIRouter, Depends, HTTPException, Form, Query
 from datetime import datetime
 import uuid
 from ..models import Wallet, Transaction
@@ -49,12 +49,37 @@ def transactions(user=Depends(get_current_user)):
 
 
 @router.get("/winning_history")
-def winning_history(user=Depends(get_current_user)):
-    wins = Transaction.objects(
-        user_id=str(user.id),
-        payment_method="WIN",
-        status="SUCCESS"
-    ).order_by("-created_at")
+def winning_history(
+    start_date: str = Query(None, description="Format: YYYY-MM-DD"),
+    end_date: str = Query(None, description="Format: YYYY-MM-DD"),
+    user=Depends(get_current_user)
+):
+
+    query = {
+        "user_id": str(user.id),
+        "payment_method": "WIN",
+        "status": "SUCCESS"
+    }
+
+    # -------------------------
+    # DATE FILTERS APPLY HERE
+    # -------------------------
+    if start_date:
+        try:
+            s_date = datetime.strptime(start_date, "%Y-%m-%d")
+            query["created_at__gte"] = s_date
+        except:
+            return {"error": "Invalid start_date format. Use YYYY-MM-DD"}
+
+    if end_date:
+        try:
+            e_date = datetime.strptime(end_date, "%Y-%m-%d")
+            query["created_at__lte"] = e_date
+        except:
+            return {"error": "Invalid end_date format. Use YYYY-MM-DD"}
+
+    # Run Query
+    wins = Transaction.objects(**query).order_by("-created_at")
 
     return {
         "success": True,
