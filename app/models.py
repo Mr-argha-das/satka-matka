@@ -1,6 +1,6 @@
 from mongoengine import Document, StringField, EmailField, DateTimeField, FloatField, IntField, ReferenceField, BooleanField, ListField, EmbeddedDocumentField, EmbeddedDocument
 import datetime
-
+import uuid
 class User(Document):
     meta = {"collection": "users"}
 
@@ -12,14 +12,7 @@ class User(Document):
     balance = FloatField(default=0.0)
     created_at = DateTimeField(default=datetime.datetime.utcnow)
 
-class Transaction(Document):
-    meta = {"collection":"transactions"}
-    user = ReferenceField(User, required=True)
-    kind = StringField(choices=["deposit","withdraw","bet","win","refund"], required=True)
-    amount = FloatField(required=True)
-    balance_after = FloatField(required=True)
-    meta_info = StringField()
-    created_at = DateTimeField(default=datetime.datetime.utcnow)
+
 
 class Bet(Document):
     meta = {"collection":"bets", "indexes": [{"fields":["-created_at"]}]}
@@ -41,3 +34,31 @@ class Draw(Document):
     published_by = ReferenceField(User)
     created_at = DateTimeField(default=datetime.datetime.utcnow)
     settled = BooleanField(default=False)
+
+class Transaction(Document):
+    tx_id = StringField(required=True, unique=True)
+    user_id = StringField(required=True)
+    amount = FloatField(required=True)
+    payment_method = StringField(required=True)
+    status = StringField(default="PENDING")  # PENDING, SUCCESS, FAILED
+    created_at = DateTimeField(default=datetime.datetime.utcnow)
+    confirmed_at = DateTimeField()
+    screenshot = StringField()
+
+
+class Wallet(Document):
+    user_id = StringField(required=True, unique=True)
+    balance = FloatField(default=0)
+    updated_at =DateTimeField(default=datetime.datetime.utcnow)
+
+
+class Withdrawal(Document):
+    wd_id = StringField(default=lambda: str(uuid.uuid4()))
+    user_id = StringField(required=True)
+    amount = FloatField(required=True)
+    method = StringField(required=True)  # Paytm / PhonePe / GooglePay
+    number = StringField(required=True)
+
+    status = StringField(default="PENDING")  # PENDING / SUCCESS / FAILED
+    created_at = DateTimeField(default=datetime.datetime.utcnow)
+    confirmed_at = DateTimeField()

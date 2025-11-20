@@ -33,3 +33,6 @@ class BetCreate(BaseModel):
 class DrawCreate(BaseModel):
     market: str
     result_number: str
+
+
+
