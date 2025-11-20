@@ -52,6 +52,8 @@ def get_market(market_id: str):
     if not market:
         raise HTTPException(404, "Market not found")
     return market
+
+
 @router.get("/")
 def get_all_markets():
     return {
