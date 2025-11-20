@@ -45,6 +45,13 @@ def delete_market(market_id: str):
 
     market.delete()
     return {"msg": "Market deleted successfully"}
+
+@router.get("/{market_id}")
+def get_market(market_id: str):
+    market = Market.objects(id=market_id).first()
+    if not market:
+        raise HTTPException(404, "Market not found")
+    return market
 @router.get("/")
 def get_all_markets():
     return {
