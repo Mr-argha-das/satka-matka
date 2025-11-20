@@ -6,7 +6,9 @@ python-jose[cryptography]==3.3.0
 bcrypt==4.0.1
 passlib[bcrypt]==1.7.4
 
-pydantic==1.10.15
+python-multipart==0.0.9
+
+pydantic==2.8.2
+pydantic-settings==2.2.0
 mongoengine==0.29.1
 python-dotenv==1.0.1
-python-multipart==0.0.9
