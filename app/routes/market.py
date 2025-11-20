@@ -2,7 +2,7 @@ import json
 from fastapi import APIRouter, HTTPException
 from ..models import Market
 
-router = APIRouter(prefix="/market", tags=["Market"])
+router = APIRouter(prefix="/market")
 
 
 @router.post("/create")

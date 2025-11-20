@@ -1,7 +1,7 @@
 from ..models import Bid
 from ..models import Result
 from ..models import Wallet
-from rates import GAME_RATES
+from app.routes.rates import GAME_RATES
 
 def settle_results(market_id):
     market = Result.objects.filter(market_id=market_id).first()
