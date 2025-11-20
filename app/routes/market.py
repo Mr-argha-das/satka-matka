@@ -51,7 +51,7 @@ def get_market(market_id: str):
     market = Market.objects(id=market_id).first()
     if not market:
         raise HTTPException(404, "Market not found")
-    return json.loads(market.to_json())
+    return market
 @router.get("/")
 def get_all_markets():
     return {

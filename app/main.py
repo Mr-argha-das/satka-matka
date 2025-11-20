@@ -37,7 +37,6 @@ app.include_router(images_routes.router)
 app.include_router(deposit_qr.router)
 
 
-
 @app.get("/")
 def root():
     return {"status":"ok", "message":"Matka backend running"}
