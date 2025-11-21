@@ -125,3 +125,30 @@ def reject_deposit(request_id: str = Form(...)):
     qr.save()
 
     return {"message": "Deposit request rejected"}
+@router.get("/history")
+def get_deposit_history(
+    status: str | None = None,
+    user=Depends(get_current_user)
+):
+
+    query = {"user_id": str(user.id)}
+    if status:
+        query["status"] = status.upper()
+
+    history = DepositQR.objects(**query).order_by("-created_at")
+
+    data = []
+    for h in history:
+        data.append({
+            "id": str(h.id),
+            "image_url": h.image_url,
+            "status": h.status,
+            "amount": getattr(h, "amount", None),
+            "uploaded_at": h.created_at,
+            "updated_at": h.updated_at
+        })
+
+    return {
+        "count": len(data),
+        "history": data
+    }

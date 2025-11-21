@@ -109,6 +109,8 @@ def transactions(user=Depends(get_current_user)):
     } for t in tr]
 
 
+
+
 @router.get("/winning_history")
 def winning_history(
     start_date: str = Query(None, description="Format: YYYY-MM-DD"),
@@ -151,3 +153,5 @@ def winning_history(
             "date": w.created_at
         } for w in wins]
     }
+
+
