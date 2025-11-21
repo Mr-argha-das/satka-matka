@@ -23,6 +23,7 @@ app.add_middleware(
 
 connect(host=settings.MONGO_URI)
 app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 app.include_router(auth_routes.router)
 app.include_router(admin_routes.router)
 app.include_router(user_routes.router)
