@@ -43,7 +43,6 @@ async def upload_qr(image: UploadFile = File(...), user=Depends(get_current_user
     }
 
 
-
 @router.get("/image/{user_id}")
 def get_qr_image(user_id: str):
 
@@ -129,6 +128,8 @@ def reject_deposit(request_id: str = Form(...)):
     ).save()
 
     return {"message": "Deposit request rejected"}
+
+
 @router.get("/history")
 def get_deposit_history(
     status: str | None = None,

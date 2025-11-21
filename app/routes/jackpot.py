@@ -68,6 +68,10 @@ class StarlineSlotRequest(BaseModel):
     start_time: str
     end_time: str
 
+class JackpotSlotRequest(BaseModel):
+    name: str
+    start_time: str
+    end_time: str
 
 # ⭐ Add Slot
 @router.post("/starline/add")
@@ -200,10 +204,8 @@ def starline_bid_history(user=Depends(get_current_user)):
 # ⭐ NEW → User Winning History (No DB Field Added)
 @router.get("/starline/winning/history")
 def starline_winning_history(user=Depends(get_current_user)):
-
     results = Result.objects(session="starline")
     winning = []
-
     for r in results:
 
         bids = Bid.objects(
@@ -235,6 +237,8 @@ def starline_winning_history(user=Depends(get_current_user)):
                 })
 
     return winning
+
+
 
 
 # ⭐ Declare Result
@@ -277,16 +281,19 @@ def starline_result_get(slot_id: str):
 # ======================================================
 
 @router.post("/jackpot/add")
-def jackpot_add(name: str, start_time: str, end_time: str):
+def jackpot_add(slot_data: JackpotSlotRequest):
 
     slot = JackpotSlot(
-        name=name,
-        start_time=start_time,
-        end_time=end_time,
+        name=slot_data.name,
+        start_time=slot_data.start_time,
+        end_time=slot_data.end_time,
         games=ALLOWED_GAMES
     ).save()
 
     return {"msg": "Jackpot Slot Added", "slot_id": str(slot.id)}
+
+
+
 
 
 # ⭐ Jackpot List
