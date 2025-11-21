@@ -33,8 +33,8 @@ def update_market(market_id: str, name: str = None, open_time: str = None, close
         market.open_time = open_time
     if close_time:
         market.close_time = close_time
-
     market.save()
+
 
     return {"msg": "Market updated", "market": market}
 @router.delete("/delete/{market_id}")

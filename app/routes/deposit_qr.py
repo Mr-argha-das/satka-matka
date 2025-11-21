@@ -53,7 +53,6 @@ async def upload_qr(image: UploadFile = File(...), user=Depends(get_current_user
     return {"message": "QR uploaded successfully", "image_url": file_path}
 
 
-
 @router.get("/image/{user_id}")
 def get_qr_image(user_id: str):
 
