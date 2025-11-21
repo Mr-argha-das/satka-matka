@@ -13,21 +13,19 @@ origins = [
     "*"
 ]
 
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=["*"],   
     allow_credentials=True,
-    allow_methods=["*"], 
-    allow_headers=["*"],  
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
-
 
 connect(host=settings.MONGO_URI)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 app.include_router(auth_routes.router)
 app.include_router(admin_routes.router)
-app.include_router(user_routes.router,)
+app.include_router(user_routes.router)
 app.include_router(withdrawal_routes.router)
 app.include_router(bids_routes.router)
 app.include_router(chart.router)

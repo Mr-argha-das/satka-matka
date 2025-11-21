@@ -12,10 +12,6 @@ router = APIRouter(prefix="/deposit-qr", tags=["Deposit With QR"])
 UPLOAD_DIR = "uploads/deposit_qr"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
-
-# -------------------------------------------------------
-# 1️⃣ USER: Upload or Replace QR Image
-# -------------------------------------------------------
 @router.post("/upload")
 async def upload_qr(image: UploadFile = File(...), user=Depends(get_current_user)):
 
@@ -57,9 +53,7 @@ async def upload_qr(image: UploadFile = File(...), user=Depends(get_current_user
     return {"message": "QR uploaded successfully", "image_url": file_path}
 
 
-# -------------------------------------------------------
-# 2️⃣ PUBLIC: Get QR image by user ID
-# -------------------------------------------------------
+
 @router.get("/image/{user_id}")
 def get_qr_image(user_id: str):
 
@@ -84,7 +78,7 @@ def get_pending_list():
         data.append({
             "id": str(p.id),
             "user_id": p.user_id,
-            "username": user.full_name if user else "Unknown",
+            "username": user.username if user else "Unknown",
             "image_url": p.image_url,
             "uploaded_at": p.created_at
         })
@@ -92,9 +86,6 @@ def get_pending_list():
     return {"count": len(data), "pending": data}
 
 
-# -------------------------------------------------------
-# 4️⃣ ADMIN: Approve Deposit (adds money to wallet)
-# -------------------------------------------------------
 @router.post("/approve", dependencies=[Depends(require_admin)])
 def approve_deposit(
     request_id: str = Form(...),
@@ -118,7 +109,6 @@ def approve_deposit(
     qr.save()
 
     return {"message": "Deposit Approved", "amount_added": amount}
-
 
 # -------------------------------------------------------
 # 5️⃣ ADMIN: Reject Deposit
