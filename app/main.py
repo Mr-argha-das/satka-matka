@@ -34,6 +34,7 @@ app.include_router(market.router)
 app.include_router(images_routes.router)
 app.include_router(deposit_qr.router)
 app.include_router(passbook.router)
+
 app.include_router(jackpot.router)
 
 
