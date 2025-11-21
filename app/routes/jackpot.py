@@ -10,7 +10,7 @@ from ..models import (
     Bid, Result, Wallet
 )
 from bson import ObjectId
-
+from datetime import datetime
 from ..auth import get_current_user, require_admin
 
 router = APIRouter(prefix="/starline_jackpot", tags=["Starline & Jackpot"])
@@ -90,13 +90,33 @@ def starline_add(slot_data: StarlineSlotRequest):
 # ⭐ Get Slot List
 @router.get("/starline/list")
 def starline_list():
-    return [{
-        "id": str(s.id),
-        "name": s.name,
-        "start_time": s.start_time,
-        "end_time": s.end_time,
-        "games": s.games
-    } for s in StarlineSlot.objects]
+
+    now = datetime.now().time()  # current time
+
+    response = []
+
+    for s in StarlineSlot.objects:
+
+        # Convert string → time object
+        start = datetime.strptime(s.start_time, "%I:%M %p").time()
+        end   = datetime.strptime(s.end_time, "%I:%M %p").time()
+
+        # Status logic
+        if start <= now <= end:
+            status = "Market Running"
+        else:
+            status = "Market Closed"
+
+        response.append({
+            "id": str(s.id),
+            "name": s.name,
+            "start_time": s.start_time,
+            "end_time": s.end_time,
+            "games": s.games,
+            "status": status
+        })
+
+    return response
 
 
 # ⭐ Get Slot By ID
@@ -220,13 +240,33 @@ def jackpot_add(name: str, start_time: str, end_time: str,
 # ⭐ Get Slot List
 @router.get("/jackpot/list")
 def jackpot_list():
-    return [{
-        "id": str(s.id),
-        "name": s.name,
-        "start_time": s.start_time,
-        "end_time": s.end_time,
-        "games": s.games
-    } for s in JackpotSlot.objects]
+
+    now = datetime.now().time()  # current server time
+
+    response = []
+
+    for s in JackpotSlot.objects:
+
+        # Convert string → time object
+        start = datetime.strptime(s.start_time, "%I:%M %p").time()
+        end   = datetime.strptime(s.end_time, "%I:%M %p").time()
+
+        # Status logic
+        if start <= now <= end:
+            status = "Market Running"
+        else:
+            status = "Market Closed"
+
+        response.append({
+            "id": str(s.id),
+            "name": s.name,
+            "start_time": s.start_time,
+            "end_time": s.end_time,
+            "games": s.games,
+            "status": status
+        })
+
+    return response
 
 
 # ⭐ Place Bid
