@@ -118,7 +118,7 @@ def get_starline_by_id(slot_id: str):
 
 # ⭐ Place Bid
 @router.post("/starline/bid")
-def starline_bid(slot_id: str, game_type: str, digit: str, points: int,):
+def starline_bid(slot_id: str, game_type: str, digit: str, points: int, user=Depends(get_current_user)):
 
     if game_type not in ALLOWED_GAMES:
         raise HTTPException(400, "Invalid Game Type")
