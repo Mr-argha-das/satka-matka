@@ -294,8 +294,6 @@ def jackpot_add(slot_data: JackpotSlotRequest):
 
 
 
-
-
 # ⭐ Jackpot List
 @router.get("/jackpot/list")
 def jackpot_list():
