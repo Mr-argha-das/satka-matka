@@ -99,7 +99,7 @@ def approve_deposit(
     tx = Transaction(
         tx_id=str(uuid.uuid4()),
         user_id=str(qr.user_id),
-        amount=-amount,
+        amount=amount,
         payment_method="Deposit",
         status="Approved"
     ).save()
