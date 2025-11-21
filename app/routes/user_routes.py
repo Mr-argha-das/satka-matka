@@ -1,7 +1,8 @@
+import json
 from fastapi import APIRouter, Depends, HTTPException, Form, Query
 from datetime import datetime
 import uuid
-from ..models import Wallet, Transaction
+from ..models import Wallet, Transaction, User
 from ..auth import get_current_user, require_admin
 
 router = APIRouter(prefix="/user")
@@ -34,7 +35,7 @@ def deposit_requiest_normal(user=Depends(require_admin)):
     deposit = Transaction.objects(status="PENDING").order_by("-created_at")
     return [{
         "tx_id": d.tx_id,
-        "user_id": d.user_id,
+        "user": json.loads(User.objects(id=d.user_id).first().to_json()) if User.objects(id=d.user_id).first() else {},
         "amount": d.amount,
         "payment_method": d.payment_method,
         "created_at": d.created_at
