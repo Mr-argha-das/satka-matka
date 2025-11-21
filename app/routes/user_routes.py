@@ -109,6 +109,18 @@ def transactions(user=Depends(get_current_user)):
     } for t in tr]
 
 
+@router.get("/transactions-wallet-history")
+def transactions_wallet_history(user=Depends(get_current_user)):
+    tr = Transaction.objects(user_id=str(user.id)).order_by("-created_at")
+    return [{
+        "tx_id": t.tx_id,
+        "amount": t.amount,
+        "method": t.payment_method,
+        "status": t.status,
+        "created_at": t.created_at
+    } for t in tr]
+
+
 
 
 @router.get("/winning_history")
@@ -173,7 +185,7 @@ def update_profile(
     user.save()
     return {"message": "Profile updated successfully"}
 
-@router.post("updated-password")
+@router.post("/updated-password")
 def update_password(
     old_password: str = Form(...),
     new_password: str = Form(...),

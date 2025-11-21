@@ -1,6 +1,7 @@
+import uuid
 from fastapi import APIRouter, Depends, HTTPException, Form
 from datetime import datetime
-from ..models import Wallet
+from ..models import Transaction, Wallet
 from ..models import Withdrawal
 from ..auth import get_current_user, require_admin
 
@@ -106,6 +107,13 @@ def approve_withdraw(wd_id: str = Form(...)):
     wd.status = "SUCCESS"
     wd.confirmed_at = datetime.utcnow()
     wd.save()
+    tx = Transaction(
+        tx_id=str(uuid.uuid4()),
+        user_id=str(wd.user_id),
+        amount=-wd.amount,
+        payment_method="Withdrawal",
+        status="Approved"
+    ).save()
 
     return {"message": "Withdrawal Approved", "new_balance": wallet.balance}
 
