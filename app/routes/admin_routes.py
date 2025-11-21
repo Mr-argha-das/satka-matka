@@ -1,7 +1,8 @@
+import json
 from fastapi import APIRouter, Depends, HTTPException
 import datetime, uuid
 from ..auth import require_admin
-from ..models import Draw, Market, Result, Bid, Wallet, Transaction
+from ..models import Draw, Market, Result, Bid, Wallet, Transaction, User
 from ..schemas import DrawCreate
 
 router = APIRouter(prefix="/admin")
@@ -112,4 +113,12 @@ def settle_draw(draw_id: str, admin=Depends(require_admin)):
         "session": session,
         "wins": wins,
         "loses": len(loses)
+    }
+
+@router.get("/users")
+def get_all_users(admin=Depends(require_admin)):
+    users = User.objects.all()
+    return {
+        "status": "success",
+        "users": json.loads(users.to_json())
     }

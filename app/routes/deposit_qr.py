@@ -5,7 +5,7 @@ import os
 import uuid
 
 from ..auth import get_current_user, require_admin
-from ..models import DepositQR, Wallet, User
+from ..models import DepositQR, Transaction, Wallet, User
 
 router = APIRouter(prefix="/deposit-qr", tags=["Deposit With QR"])
 
@@ -96,6 +96,13 @@ def approve_deposit(
     qr.amount = amount
     qr.updated_at = datetime.utcnow()
     qr.save()
+    tx = Transaction(
+        tx_id=str(uuid.uuid4()),
+        user_id=str(qr.user_id),
+        amount=-amount,
+        payment_method="Deposit",
+        status="Approved"
+    ).save()
 
     return {"message": "Deposit Approved", "amount_added": amount}
 
@@ -112,6 +119,13 @@ def reject_deposit(request_id: str = Form(...)):
     qr.status = "FAILED"
     qr.updated_at = datetime.utcnow()
     qr.save()
+    tx = Transaction(
+        tx_id=str(uuid.uuid4()),
+        user_id=str(qr.user_id),
+        amount=0,
+        payment_method="Deposit",
+        status="Rejected"
+    ).save()
 
     return {"message": "Deposit request rejected"}
 

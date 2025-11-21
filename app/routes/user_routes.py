@@ -109,6 +109,18 @@ def transactions(user=Depends(get_current_user)):
     } for t in tr]
 
 
+@router.get("/transactions-wallet-history")
+def transactions_wallet_history(user=Depends(get_current_user)):
+    tr = Transaction.objects(user_id=str(user.id)).order_by("-created_at")
+    return [{
+        "tx_id": t.tx_id,
+        "amount": t.amount,
+        "method": t.payment_method,
+        "status": t.status,
+        "created_at": t.created_at
+    } for t in tr]
+
+
 
 
 @router.get("/winning_history")
@@ -154,4 +166,34 @@ def winning_history(
         } for w in wins]
     }
 
+@router.get("/profile")
+def get_profile(user=Depends(get_current_user)):
+    return {
+        "username": user.username,
+        "email": user.email,
+        "full_name": user.full_name,
+        "created_at": user.created_at
+    }
+@router.put("/profile")
+def update_profile(
+    full_name: str = Form(...),
+    email: str = Form(...),
+    user=Depends(get_current_user)
+):  
+    user.email = email
+    user.full_name = full_name
+    user.save()
+    return {"message": "Profile updated successfully"}
 
+@router.post("/updated-password")
+def update_password(
+    old_password: str = Form(...),
+    new_password: str = Form(...),
+    user=Depends(get_current_user)
+):
+    if not user.verify_password(old_password):
+        raise HTTPException(400, "Old password is incorrect")
+
+    user.set_password(new_password)
+    user.save()
+    return {"message": "Password updated successfully"}
