@@ -142,3 +142,17 @@ def get_all_markets():
         })
 
     return {"status": "success", "count": len(markets), "markets": markets}
+
+# [Unit]
+# Description=FastAPI App
+# After=network.target
+
+# [Service]
+# User=ubuntu
+# Group=ubuntu
+# WorkingDirectory=/var/www/satka-matka
+# Environment="PATH=/var/www/satka-matka/venv/bin"
+# ExecStart=/var/www/satka-matka/venv/bin/gunicorn -k uvicorn.workers.UvicornWorker app:app --bind 127.0.0.1:8000
+
+# [Install]
+# WantedBy=multi-user.target
