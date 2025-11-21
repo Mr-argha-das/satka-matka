@@ -63,7 +63,7 @@ def settle(slot_id, panna):
 # ⭐ Add Slot
 @router.post("/starline/add")
 def starline_add(name: str, start_time: str, end_time: str,
-                 admin=Depends(require_admin)):
+                ):
 
     slot = StarlineSlot(
         name=name,
@@ -136,7 +136,7 @@ def starline_bid_history(user=Depends(get_current_user)):
 
 # ⭐ Declare Result
 @router.post("/starline/result/declare")
-def starline_result(slot_id: str, panna: str, admin=Depends(require_admin)):
+def starline_result(slot_id: str, panna: str, ):
 
     now = datetime.utcnow().strftime("%Y-%m-%d")
 
@@ -177,7 +177,7 @@ def starline_result_get(slot_id: str):
 # ⭐ Add Slot
 @router.post("/jackpot/add")
 def jackpot_add(name: str, start_time: str, end_time: str,
-                admin=Depends(require_admin)):
+                ):
 
     slot = JackpotSlot(
         name=name,
@@ -251,7 +251,7 @@ def jackpot_bid_history(user=Depends(get_current_user)):
 
 # ⭐ Declare Result
 @router.post("/jackpot/result/declare")
-def jackpot_result(slot_id: str, panna: str, admin=Depends(require_admin)):
+def jackpot_result(slot_id: str, panna: str, ):
 
     now = datetime.utcnow().strftime("%Y-%m-%d")
 
