@@ -124,6 +124,8 @@ def reject_deposit(request_id: str = Form(...)):
     qr.save()
 
     return {"message": "Deposit request rejected"}
+
+
 @router.get("/history")
 def get_deposit_history(
     status: str | None = None,
