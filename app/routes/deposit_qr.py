@@ -27,30 +27,20 @@ async def upload_qr(image: UploadFile = File(...), user=Depends(get_current_user
     with open(file_path, "wb") as f:
         f.write(await image.read())
 
-    old = DepositQR.objects(user_id=str(user.id)).first()
-
-    # If exists → delete old image file
-    if old:
-        try:
-            os.remove(old.image_url)
-        except:
-            pass
-
-        old.image_url = file_path
-        old.status = "PENDING"
-        old.updated_at = datetime.utcnow()
-        old.save()
-
-        return {"message": "QR updated successfully", "image_url": file_path}
-
-    # First time upload
+    # 🔥 Always create a NEW QR request entry
     qr = DepositQR(
         user_id=str(user.id),
         image_url=file_path,
-        status="PENDING"
+        status="PENDING",
+        created_at=datetime.utcnow(),
+        updated_at=datetime.utcnow()
     ).save()
 
-    return {"message": "QR uploaded successfully", "image_url": file_path}
+    return {
+        "message": "QR uploaded successfully",
+        "image_url": file_path,
+        "id": str(qr.id)
+    }
 
 
 @router.get("/image/{user_id}")
