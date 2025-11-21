@@ -41,6 +41,7 @@ def deposit_requiest_normal(user=Depends(require_admin)):
         "created_at": d.created_at
     } for d in deposit]
 
+
 @router.post("/approve-deposit-normal")
 def approve_deposit_normal(
     tx_id: str = Form(...),
@@ -65,6 +66,29 @@ def approve_deposit_normal(
 
     return {"message": "Deposit Approved", "amount_added": amount}
 
+@router.post("/failed-deposit-normal")
+def faild_deposit_normal(
+    tx_id: str = Form(...),
+    amount: float = Form(...),
+    user=Depends(require_admin)
+):
+    tx = Transaction.objects(tx_id=tx_id).first()
+    if not tx:
+        raise HTTPException(404, "Transaction not found")
+
+    if tx.status != "PENDING":
+        raise HTTPException(400, "Transaction already processed")
+
+    # Update wallet
+    wallet = get_or_create_wallet(tx.user_id)
+    wallet.update(inc__balance=amount)
+
+    tx.status = "FAILED"
+    tx.amount = amount
+    tx.updated_at = datetime.utcnow()
+    tx.save()
+
+    return {"message": "Deposit Failed", "amount_added": amount}
 
 
 @router.get("/balance")
