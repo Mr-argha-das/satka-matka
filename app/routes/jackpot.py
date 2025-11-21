@@ -2,15 +2,16 @@
 #     STARLINE + JACKPOT APIs
 # ================================
 import json
-from pydantic import BaseModel # You need this import
+from pydantic import BaseModel
 from fastapi import APIRouter, HTTPException, Depends
 from datetime import datetime
+from bson import ObjectId
+
 from ..models import (
     StarlineSlot, JackpotSlot,
     Bid, Result, Wallet
 )
-from bson import ObjectId
-from datetime import datetime
+
 from ..auth import get_current_user, require_admin
 
 router = APIRouter(prefix="/starline_jackpot", tags=["Starline & Jackpot"])
@@ -63,7 +64,6 @@ def settle(slot_id, panna):
 #            🟣 STARLINE APIs
 # ======================================================
 
-# 1. Define the Pydantic model for the request body (JSON)
 class StarlineSlotRequest(BaseModel):
     name: str
     start_time: str
@@ -72,10 +72,8 @@ class StarlineSlotRequest(BaseModel):
 
 # ⭐ Add Slot
 @router.post("/starline/add")
-# 💡 FIX: Accept the request data as a single Pydantic model (which reads the JSON body)
 def starline_add(slot_data: StarlineSlotRequest):
 
-    # Access data using dot notation (slot_data.name)
     slot = StarlineSlot(
         name=slot_data.name,
         start_time=slot_data.start_time,
@@ -86,26 +84,27 @@ def starline_add(slot_data: StarlineSlotRequest):
     return {"msg": "Starline Slot Added", "slot_id": str(slot.id)}
 
 
-
-# ⭐ Get Slot List
+# ⭐ Starline List (UPDATED WITH RESULT)
 @router.get("/starline/list")
 def starline_list():
 
-    now = datetime.now().time()  # current time
-
+    now = datetime.now().time()
     response = []
 
     for s in StarlineSlot.objects:
 
-        # Convert string → time object
         start = datetime.strptime(s.start_time, "%I:%M %p").time()
         end   = datetime.strptime(s.end_time, "%I:%M %p").time()
 
-        # Status logic
-        if start <= now <= end:
-            status = "Market Running"
+        status = "Market Running" if start <= now <= end else "Market Closed"
+
+        # ⭐ Get latest result
+        result = Result.objects(market_id=str(s.id)).order_by("-date").first()
+
+        if result:
+            final_result = f"{result.open_panna}-{result.open_digit}"
         else:
-            status = "Market Closed"
+            final_result = "XXX-X"
 
         response.append({
             "id": str(s.id),
@@ -113,7 +112,8 @@ def starline_list():
             "start_time": s.start_time,
             "end_time": s.end_time,
             "games": s.games,
-            "status": status
+            "status": status,
+            "result": final_result     # ⭐ Added
         })
 
     return response
@@ -184,7 +184,7 @@ def starline_bid_history(user=Depends(get_current_user)):
 
 # ⭐ Declare Result
 @router.post("/starline/result/declare")
-def starline_result(slot_id: str, panna: str, ):
+def starline_result(slot_id: str, panna: str):
 
     now = datetime.utcnow().strftime("%Y-%m-%d")
 
@@ -222,10 +222,8 @@ def starline_result_get(slot_id: str):
 #            🟣 JACKPOT APIs
 # ======================================================
 
-# ⭐ Add Slot
 @router.post("/jackpot/add")
-def jackpot_add(name: str, start_time: str, end_time: str,
-                ):
+def jackpot_add(name: str, start_time: str, end_time: str):
 
     slot = JackpotSlot(
         name=name,
@@ -237,25 +235,27 @@ def jackpot_add(name: str, start_time: str, end_time: str,
     return {"msg": "Jackpot Slot Added", "slot_id": str(slot.id)}
 
 
-# ⭐ Get Slot List
+# ⭐ Jackpot List (UPDATED WITH RESULT)
 @router.get("/jackpot/list")
 def jackpot_list():
 
-    now = datetime.now().time()  # current server time
-
+    now = datetime.now().time()
     response = []
 
     for s in JackpotSlot.objects:
 
-        # Convert string → time object
         start = datetime.strptime(s.start_time, "%I:%M %p").time()
         end   = datetime.strptime(s.end_time, "%I:%M %p").time()
 
-        # Status logic
-        if start <= now <= end:
-            status = "Market Running"
+        status = "Market Running" if start <= now <= end else "Market Closed"
+
+        # ⭐ Get latest result
+        result = Result.objects(market_id=str(s.id)).order_by("-date").first()
+
+        if result:
+            final_result = f"{result.open_panna}-{result.open_digit}"
         else:
-            status = "Market Closed"
+            final_result = "XXX-X"
 
         response.append({
             "id": str(s.id),
@@ -263,7 +263,8 @@ def jackpot_list():
             "start_time": s.start_time,
             "end_time": s.end_time,
             "games": s.games,
-            "status": status
+            "status": status,
+            "result": final_result   # ⭐ Added
         })
 
     return response
@@ -319,7 +320,7 @@ def jackpot_bid_history(user=Depends(get_current_user)):
 
 # ⭐ Declare Result
 @router.post("/jackpot/result/declare")
-def jackpot_result(slot_id: str, panna: str, ):
+def jackpot_result(slot_id: str, panna: str):
 
     now = datetime.utcnow().strftime("%Y-%m-%d")
 
