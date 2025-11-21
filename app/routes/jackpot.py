@@ -1,13 +1,16 @@
 # ================================
 #     STARLINE + JACKPOT APIs
 # ================================
-
+import json
+from pydantic import BaseModel # You need this import
 from fastapi import APIRouter, HTTPException, Depends
 from datetime import datetime
 from ..models import (
     StarlineSlot, JackpotSlot,
     Bid, Result, Wallet
 )
+from bson import ObjectId
+
 from ..auth import get_current_user, require_admin
 
 router = APIRouter(prefix="/starline_jackpot", tags=["Starline & Jackpot"])
@@ -60,19 +63,28 @@ def settle(slot_id, panna):
 #            🟣 STARLINE APIs
 # ======================================================
 
+# 1. Define the Pydantic model for the request body (JSON)
+class StarlineSlotRequest(BaseModel):
+    name: str
+    start_time: str
+    end_time: str
+
+
 # ⭐ Add Slot
 @router.post("/starline/add")
-def starline_add(name: str, start_time: str, end_time: str,
-                ):
+# 💡 FIX: Accept the request data as a single Pydantic model (which reads the JSON body)
+def starline_add(slot_data: StarlineSlotRequest):
 
+    # Access data using dot notation (slot_data.name)
     slot = StarlineSlot(
-        name=name,
-        start_time=start_time,
-        end_time=end_time,
+        name=slot_data.name,
+        start_time=slot_data.start_time,
+        end_time=slot_data.end_time,
         games=ALLOWED_GAMES
     ).save()
 
     return {"msg": "Starline Slot Added", "slot_id": str(slot.id)}
+
 
 
 # ⭐ Get Slot List
@@ -87,10 +99,26 @@ def starline_list():
     } for s in StarlineSlot.objects]
 
 
+# ⭐ Get Slot By ID
+@router.get("/starline/{slot_id}")
+def get_starline_by_id(slot_id: str):
+    slot = StarlineSlot.objects(id=slot_id).first()
+
+    if not slot:
+        raise HTTPException(404, "Slot not found")
+
+    return {
+        "id": str(slot.id),
+        "name": slot.name,
+        "start_time": slot.start_time,
+        "end_time": slot.end_time,
+        "games": slot.games
+    }
+
+
 # ⭐ Place Bid
 @router.post("/starline/bid")
-def starline_bid(slot_id: str, game_type: str, digit: str, points: int,
-                 user=Depends(get_current_user)):
+def starline_bid(slot_id: str, game_type: str, digit: str, points: int,):
 
     if game_type not in ALLOWED_GAMES:
         raise HTTPException(400, "Invalid Game Type")
