@@ -66,13 +66,12 @@ def update_market(market_id: str, name: str = None, open_time: str = None, close
     return {"msg": "Market updated", "market": json.loads(market.to_json())}
 
 
-<<<<<<< HEAD
+
     return {"msg": "Market updated", "market": market}
-=======
+
 # ---------------------------
 # DELETE MARKET
 # ---------------------------
->>>>>>> 52f5f502ef187ef52050a3e9e08c6d29290da381
 @router.delete("/delete/{market_id}")
 def delete_market(market_id: str):
     market = Market.objects(id=market_id).first()
