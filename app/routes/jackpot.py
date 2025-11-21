@@ -122,17 +122,42 @@ def starline_list():
 # ⭐ Get Slot By ID
 @router.get("/starline/{slot_id}")
 def get_starline_by_id(slot_id: str):
-    slot = StarlineSlot.objects(id=slot_id).first()
 
+    slot = StarlineSlot.objects(id=slot_id).first()
     if not slot:
         raise HTTPException(404, "Slot not found")
 
+    # -------------------------------
+    # 🔵 Time-based status
+    # -------------------------------
+    now = datetime.now().time()
+
+    start = datetime.strptime(slot.start_time, "%I:%M %p").time()
+    end   = datetime.strptime(slot.end_time, "%I:%M %p").time()
+
+    status = "Market Running" if start <= now <= end else "Market Closed"
+
+    # -------------------------------
+    # 🔵 Latest result for this slot
+    # -------------------------------
+    result = Result.objects(market_id=str(slot.id)).order_by("-date").first()
+
+    if result:
+        final_result = f"{result.open_panna}-{result.open_digit}"
+    else:
+        final_result = "XXX-X"
+
+    # -------------------------------
+    # 🔵 Final formatted response
+    # -------------------------------
     return {
         "id": str(slot.id),
         "name": slot.name,
         "start_time": slot.start_time,
         "end_time": slot.end_time,
-        "games": slot.games
+        "games": slot.games,
+        "status": status,            # ⭐ Added
+        "result": final_result       # ⭐ Added
     }
 
 
@@ -269,6 +294,45 @@ def jackpot_list():
 
     return response
 
+@router.get("/jackpot/{slot_id}")
+def get_jackpot_by_id(slot_id: str):
+
+    slot = JackpotSlot.objects(id=slot_id).first()
+    if not slot:
+        raise HTTPException(404, "Slot not found")
+
+    # -------------------------------
+    # 🔵 Time-based status
+    # -------------------------------
+    now = datetime.now().time()
+
+    start = datetime.strptime(slot.start_time, "%I:%M %p").time()
+    end   = datetime.strptime(slot.end_time, "%I:%M %p").time()
+
+    status = "Market Running" if start <= now <= end else "Market Closed"
+
+    # -------------------------------
+    # 🔵 Latest result for this slot
+    # -------------------------------
+    result = Result.objects(market_id=str(slot.id)).order_by("-date").first()
+
+    if result:
+        final_result = f"{result.open_panna}-{result.open_digit}"
+    else:
+        final_result = "XXX-X"
+
+    # -------------------------------
+    # 🔵 JSON Response
+    # -------------------------------
+    return {
+        "id": str(slot.id),
+        "name": slot.name,
+        "start_time": slot.start_time,
+        "end_time": slot.end_time,
+        "games": slot.games,
+        "status": status,          # ⭐ Added
+        "result": final_result     # ⭐ Added
+    }
 
 # ⭐ Place Bid
 @router.post("/jackpot/bid")
