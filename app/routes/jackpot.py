@@ -303,6 +303,7 @@ def jackpot_list():
 
         status = "Market Running" if start <= now <= end else "Market Closed"
 
+        # ⭐ Get latest result
         result = Result.objects(market_id=str(s.id)).order_by("-date").first()
 
         if result:
