@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Form, Query
 from datetime import datetime
 import uuid
 from ..models import Wallet, Transaction
-from ..auth import get_current_user
+from ..auth import get_current_user, require_admin
 
 router = APIRouter(prefix="/user")
 
@@ -28,6 +28,42 @@ def add_money(amount: float = Form(...), payment_method: str = Form(...), user=D
     ).save()
 
     return {"message": "Payment request created", "transaction_id": tx.tx_id}
+
+@router.get("/deposit-requiest-normal")
+def deposit_requiest_normal(user=Depends(require_admin)):
+    deposit = Transaction.objects(status="PENDING").order_by("-created_at")
+    return [{
+        "tx_id": d.tx_id,
+        "user_id": d.user_id,
+        "amount": d.amount,
+        "payment_method": d.payment_method,
+        "created_at": d.created_at
+    } for d in deposit]
+
+@router.post("/approve-deposit-normal")
+def approve_deposit_normal(
+    tx_id: str = Form(...),
+    amount: float = Form(...),
+    user=Depends(require_admin)
+):
+    tx = Transaction.objects(tx_id=tx_id).first()
+    if not tx:
+        raise HTTPException(404, "Transaction not found")
+
+    if tx.status != "PENDING":
+        raise HTTPException(400, "Transaction already processed")
+
+    # Update wallet
+    wallet = get_or_create_wallet(tx.user_id)
+    wallet.update(inc__balance=amount)
+
+    tx.status = "SUCCESS"
+    tx.amount = amount
+    tx.updated_at = datetime.utcnow()
+    tx.save()
+
+    return {"message": "Deposit Approved", "amount_added": amount}
+
 
 
 @router.get("/balance")
