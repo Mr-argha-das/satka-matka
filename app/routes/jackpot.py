@@ -25,7 +25,6 @@ GAME_RATES = {
     "triple_panna": 600,
 }
 
-
 # ======================================================
 #              HELPER FUNCTIONS
 # ======================================================
@@ -113,13 +112,13 @@ def starline_list():
             "end_time": s.end_time,
             "games": s.games,
             "status": status,
-            "result": final_result     # ⭐ Added
+            "result": final_result
         })
 
     return response
 
 
-# ⭐ Get Slot By ID
+# ⭐ Get Starline Slot By ID  (UPDATED)
 @router.get("/starline/{slot_id}")
 def get_starline_by_id(slot_id: str):
 
@@ -127,9 +126,6 @@ def get_starline_by_id(slot_id: str):
     if not slot:
         raise HTTPException(404, "Slot not found")
 
-    # -------------------------------
-    # 🔵 Time-based status
-    # -------------------------------
     now = datetime.now().time()
 
     start = datetime.strptime(slot.start_time, "%I:%M %p").time()
@@ -137,9 +133,6 @@ def get_starline_by_id(slot_id: str):
 
     status = "Market Running" if start <= now <= end else "Market Closed"
 
-    # -------------------------------
-    # 🔵 Latest result for this slot
-    # -------------------------------
     result = Result.objects(market_id=str(slot.id)).order_by("-date").first()
 
     if result:
@@ -147,17 +140,14 @@ def get_starline_by_id(slot_id: str):
     else:
         final_result = "XXX-X"
 
-    # -------------------------------
-    # 🔵 Final formatted response
-    # -------------------------------
     return {
         "id": str(slot.id),
         "name": slot.name,
         "start_time": slot.start_time,
         "end_time": slot.end_time,
         "games": slot.games,
-        "status": status,            # ⭐ Added
-        "result": final_result       # ⭐ Added
+        "status": status,
+        "result": final_result
     }
 
 
@@ -207,6 +197,46 @@ def starline_bid_history(user=Depends(get_current_user)):
     } for b in bids]
 
 
+# ⭐ NEW → User Winning History (No DB Field Added)
+@router.get("/starline/winning/history")
+def starline_winning_history(user=Depends(get_current_user)):
+
+    results = Result.objects(session="starline")
+    winning = []
+
+    for r in results:
+
+        bids = Bid.objects(
+            user_id=str(user.id),
+            market_id=r.market_id,
+            session="starline"
+        )
+
+        for b in bids:
+            win = False
+
+            if b.game_type == "single_digit" and b.digit == r.open_digit:
+                win = True
+
+            if b.game_type in ["single_panna", "double_panna", "triple_panna"]:
+                if b.digit == r.open_panna:
+                    win = True
+
+            if win:
+                amount = b.points * GAME_RATES[b.game_type]
+
+                winning.append({
+                    "market_id": b.market_id,
+                    "game": b.game_type,
+                    "digit": b.digit,
+                    "points": b.points,
+                    "winning_amount": amount,
+                    "date": r.date
+                })
+
+    return winning
+
+
 # ⭐ Declare Result
 @router.post("/starline/result/declare")
 def starline_result(slot_id: str, panna: str):
@@ -242,7 +272,6 @@ def starline_result_get(slot_id: str):
         "digit": result.open_digit
     }
 
-
 # ======================================================
 #            🟣 JACKPOT APIs
 # ======================================================
@@ -260,7 +289,7 @@ def jackpot_add(name: str, start_time: str, end_time: str):
     return {"msg": "Jackpot Slot Added", "slot_id": str(slot.id)}
 
 
-# ⭐ Jackpot List (UPDATED WITH RESULT)
+# ⭐ Jackpot List
 @router.get("/jackpot/list")
 def jackpot_list():
 
@@ -274,7 +303,6 @@ def jackpot_list():
 
         status = "Market Running" if start <= now <= end else "Market Closed"
 
-        # ⭐ Get latest result
         result = Result.objects(market_id=str(s.id)).order_by("-date").first()
 
         if result:
@@ -289,11 +317,13 @@ def jackpot_list():
             "end_time": s.end_time,
             "games": s.games,
             "status": status,
-            "result": final_result   # ⭐ Added
+            "result": final_result
         })
 
     return response
 
+
+# ⭐ Get Jackpot Slot By ID
 @router.get("/jackpot/{slot_id}")
 def get_jackpot_by_id(slot_id: str):
 
@@ -301,9 +331,6 @@ def get_jackpot_by_id(slot_id: str):
     if not slot:
         raise HTTPException(404, "Slot not found")
 
-    # -------------------------------
-    # 🔵 Time-based status
-    # -------------------------------
     now = datetime.now().time()
 
     start = datetime.strptime(slot.start_time, "%I:%M %p").time()
@@ -311,28 +338,20 @@ def get_jackpot_by_id(slot_id: str):
 
     status = "Market Running" if start <= now <= end else "Market Closed"
 
-    # -------------------------------
-    # 🔵 Latest result for this slot
-    # -------------------------------
     result = Result.objects(market_id=str(slot.id)).order_by("-date").first()
 
-    if result:
-        final_result = f"{result.open_panna}-{result.open_digit}"
-    else:
-        final_result = "XXX-X"
+    final_result = f"{result.open_panna}-{result.open_digit}" if result else "XXX-X"
 
-    # -------------------------------
-    # 🔵 JSON Response
-    # -------------------------------
     return {
         "id": str(slot.id),
         "name": slot.name,
         "start_time": slot.start_time,
         "end_time": slot.end_time,
         "games": slot.games,
-        "status": status,          # ⭐ Added
-        "result": final_result     # ⭐ Added
+        "status": status,
+        "result": final_result
     }
+
 
 # ⭐ Place Bid
 @router.post("/jackpot/bid")
@@ -380,6 +399,46 @@ def jackpot_bid_history(user=Depends(get_current_user)):
         "points": b.points,
         "time": b.created_at
     } for b in bids]
+
+
+# ⭐ NEW → User Winning History (Jackpot)
+@router.get("/jackpot/winning/history")
+def jackpot_winning_history(user=Depends(get_current_user)):
+
+    results = Result.objects(session="jackpot")
+    winning = []
+
+    for r in results:
+
+        bids = Bid.objects(
+            user_id=str(user.id),
+            market_id=r.market_id,
+            session="jackpot"
+        )
+
+        for b in bids:
+            win = False
+
+            if b.game_type == "single_digit" and b.digit == r.open_digit:
+                win = True
+
+            if b.game_type in ["single_panna", "double_panna", "triple_panna"]:
+                if b.digit == r.open_panna:
+                    win = True
+
+            if win:
+                amount = b.points * GAME_RATES[b.game_type]
+
+                winning.append({
+                    "market_id": b.market_id,
+                    "game": b.game_type,
+                    "digit": b.digit,
+                    "points": b.points,
+                    "winning_amount": amount,
+                    "date": r.date
+                })
+
+    return winning
 
 
 # ⭐ Declare Result
