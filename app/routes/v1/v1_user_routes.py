@@ -39,7 +39,7 @@ def update_is_bet(user_id: str, payload: BetUpdate,user=Depends(require_admin)):
 
     user.update(is_bet=payload.is_bet)
     return {"message": "Bet Permission updated successfully"}
-@router.get("/users/status/false")
+@router.get("/users/status/disapprove")
 def inactive_users(user=Depends(require_admin)):
     users = User.objects(status=False)
     return {
@@ -47,7 +47,7 @@ def inactive_users(user=Depends(require_admin)):
         "count": len(users),
         "users": json.loads(users.to_json())    
     }
-@router.get("/users/status/true")
+@router.get("/users/status/approve")
 def active_users(user=Depends(require_admin)):
     users = User.objects(status=True)
     return {
