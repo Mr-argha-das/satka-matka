@@ -276,9 +276,6 @@ def starline_result_get(slot_id: str):
         "digit": result.open_digit
     }
 
-# ======================================================
-#            🟣 JACKPOT APIs
-# ======================================================
 
 @router.post("/jackpot/add")
 def jackpot_add(slot_data: JackpotSlotRequest):
@@ -291,8 +288,6 @@ def jackpot_add(slot_data: JackpotSlotRequest):
     ).save()
 
     return {"msg": "Jackpot Slot Added", "slot_id": str(slot.id)}
-
-
 
 
 

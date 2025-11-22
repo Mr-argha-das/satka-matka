@@ -3,7 +3,6 @@ import datetime
 import uuid
 class User(Document):
     meta = {"collection": "users"}
-
     username = StringField(required=True)
     mobile = StringField(required=True, unique=True)
    
@@ -55,7 +54,6 @@ class Market(Document):
     name = StringField(required=True, unique=True)
     open_time = StringField(required=True)
     close_time = StringField(required=True)
-    
     open_result = StringField(default="-")
     close_result = StringField(default="-")
     

@@ -171,18 +171,19 @@ def winning_history(
 def get_profile(user=Depends(get_current_user)):
     return {
         "username": user.username,
-        "email": user.email,
-        "full_name": user.full_name,
+        "mobile": user.mobile,
         "created_at": user.created_at
     }
+
+
 @router.put("/profile")
 def update_profile(
-    full_name: str = Form(...),
-    email: str = Form(...),
+    username: str = Form(...),
+    mobile: str = Form(...),
     user=Depends(get_current_user)
 ):  
-    user.email = email
-    user.full_name = full_name
+    user.username = username
+    user.mobile = mobile
     user.save()
     return {"message": "Profile updated successfully"}
 
