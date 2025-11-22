@@ -10,12 +10,13 @@ app = FastAPI(title="Matka Satka Backend")
 
 origins = [
     "http://localhost:5173",  
-    "*"
+    "http://127.0.0.1:5173",
+    "https://kalyanratan777.com",  # <-- apna domain add karna
 ]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],   
+    allow_origins=origins,   # "*" hatao
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

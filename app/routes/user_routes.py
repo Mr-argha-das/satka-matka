@@ -186,15 +186,20 @@ def update_profile(
     user.save()
     return {"message": "Profile updated successfully"}
 
-@router.post("/updated-password")
+@router.post("/update-password")
 def update_password(
     old_password: str = Form(...),
     new_password: str = Form(...),
-    user=Depends(get_current_user)
+    user = Depends(get_current_user)
 ):
-    if not user.verify_password(old_password):
+    # 1️⃣ Check old password
+    if not verify_password(old_password, user.password_hash):
         raise HTTPException(400, "Old password is incorrect")
 
-    user.set_password(new_password)
-    user.save()
+    # 2️⃣ Hash new password
+    new_hash = hash_password(new_password)
+
+    # 3️⃣ Save updated password
+    user.update(password_hash=new_hash)
+
     return {"message": "Password updated successfully"}
