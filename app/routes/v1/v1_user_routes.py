@@ -81,6 +81,7 @@ def add_money(amount: float, user_id: str, user=Depends(require_admin)):
 
     user.update(inc__balance=amount)
     return {"message": f"Added {amount} to user {user.username} successfully"}
+
 @router.get("/user/witdrawal-money")
 def deduct_money(amount: float, user_id: str, user=Depends(require_admin)):
     user = User.objects(id=user_id).first()
@@ -96,6 +97,7 @@ def deduct_money(amount: float, user_id: str, user=Depends(require_admin)):
     user.update(inc__balance=-amount)
 
     return {"message": f"Deducted {amount} from user {user.username} successfully"}
+
 @router.post("/user/update-password")
 def update_password(
     user_id: str = Form(...),
