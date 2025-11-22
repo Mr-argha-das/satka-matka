@@ -5,6 +5,7 @@ from mongoengine import Document, StringField
 from pydantic import BaseModel
 
 import uuid
+
 class User(Document):
     meta = {"collection": "users"}
     username = StringField(required=True)

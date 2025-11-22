@@ -5,10 +5,24 @@ from pydantic import BaseModel
 from ...auth import require_admin
 router = APIRouter(prefix="/api/v1/admin", tags=["Admin user management"])
 
+def serialize_user(u):
+    return {
+        "id": str(u.id),
+        "username": u.username,
+        "mobile": u.mobile,
+        "role": u.role,
+        "balance": u.balance,
+        "created_at": u.created_at.isoformat(),
+        "is_bet": u.is_bet,
+        "status": u.status,
+        "last_login": u.last_login.isoformat() if u.last_login else None
+    }
+
 @router.get("/users")
 def all_users(user=Depends(require_admin)):
     users = User.objects().order_by("-created_at")
-    return [user.to_mongo() for user in users]
+    return [serialize_user(u) for u in users]
+
 
 class StatusUpdate(BaseModel):
     status: bool
@@ -33,10 +47,12 @@ def update_is_bet(user_id: str, payload: BetUpdate,user=Depends(require_admin)):
 
     user.update(is_bet=payload.is_bet)
     return {"message": "Bet Permission updated successfully"}
+
 @router.get("/users/status/false")
 def inactive_users(user=Depends(require_admin)):
     users = User.objects(status=False)
     return [user.to_mongo() for user in users]
+
 @router.get("/users/status/true")
 def active_users(user=Depends(require_admin)):
     users = User.objects(status=True)
