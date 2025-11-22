@@ -29,7 +29,7 @@ router = APIRouter(prefix="/market")
 # CREATE MARKET
 # ---------------------------
 @router.post("/create")
-def create_market(name: str, open_time: str, close_time: str):
+def create_market(name: str, open_time: str, close_time: str , open_result : str = "-", close_result : str = "-"):
     if Market.objects(name=name).first():
         raise HTTPException(400, "Market already exists")
 
@@ -37,8 +37,8 @@ def create_market(name: str, open_time: str, close_time: str):
         name=name,
         open_time=open_time,
         close_time=close_time,
-        open_result="-",
-        close_result="-"
+        open_result=open_result,
+        close_result=close_result
     )
     market.save()
     return {"msg": "Market created successfully", "market": json.loads(market.to_json())}

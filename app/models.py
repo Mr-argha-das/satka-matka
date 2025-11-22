@@ -54,7 +54,6 @@ class Market(Document):
     name = StringField(required=True, unique=True)
     open_time = StringField(required=True)
     close_time = StringField(required=True)
-    
     open_result = StringField(default="-")
     close_result = StringField(default="-")
     

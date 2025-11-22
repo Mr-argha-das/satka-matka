@@ -14,9 +14,6 @@ def passbook_history(
     user_id = str(user.id)
     entries = []
 
-    # ---------------------------------
-    # Convert date strings to datetime
-    # ---------------------------------
     start_dt = None
     end_dt = None
 
