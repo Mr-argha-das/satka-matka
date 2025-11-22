@@ -203,3 +203,14 @@ def update_password(
     user.update(password_hash=new_hash)
 
     return {"message": "Password updated successfully"}
+
+@router.get("/all-users", dependencies=[Depends(require_admin)])
+def all_users():
+    users = User.objects().order_by("-created_at")
+    return [{
+        "user_id": str(u.id),
+        "username": u.username,
+        "email": u.email,
+        "full_name": u.full_name,
+        "created_at": u.created_at
+    } for u in users]
