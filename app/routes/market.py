@@ -30,7 +30,6 @@ router = APIRouter(prefix="/market")
 # ---------------------------
 @router.post("/create")
 def create_market(name: str, open_time: str, close_time: str):
-
     if Market.objects(name=name).first():
         raise HTTPException(400, "Market already exists")
 
@@ -42,7 +41,6 @@ def create_market(name: str, open_time: str, close_time: str):
         close_result="-"
     )
     market.save()
-
     return {"msg": "Market created successfully", "market": json.loads(market.to_json())}
 
 
@@ -111,7 +109,6 @@ def get_market(market_id: str):
     }
 
     return data
-
 
 # ---------------------------
 # GET ALL MARKETS (FULL + CLEAN)

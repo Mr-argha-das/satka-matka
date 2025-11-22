@@ -3,7 +3,6 @@ import datetime
 import uuid
 class User(Document):
     meta = {"collection": "users"}
-
     username = StringField(required=True)
     mobile = StringField(required=True, unique=True)
    
