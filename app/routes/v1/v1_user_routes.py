@@ -117,6 +117,8 @@ def user_details(user_id: str, use2r=Depends(require_admin)):
     total = Transaction.objects(user_id=str(user_id), status="Approved",payment_method="Deposit").sum("amount") or 0.0
     total2 = Withdrawal.objects(user_id=str(user_id), status="SUCCESS").sum("amount") or 0.0
     bids = Bid.objects(user_id=str(user.id)).order_by("-created_at").limit(100)
+    totalWitdh = Transaction.objects(user_id=str(user_id), status="Approved",payment_method="Withdrawal")
+    totalDeposit = Transaction.objects(user_id=str(user_id), status="Approved",payment_method="Deposit")
     query = {
         "user_id": str(user.id),
         "payment_method": "WIN",
@@ -129,7 +131,9 @@ def user_details(user_id: str, use2r=Depends(require_admin)):
             "@total_deposit": total,
             "@total_withdrawal": total2,
             "@user_bids": json.loads(bids.to_json()),
-            "@wins": json.loads(wins.to_json())
+            "@wins": json.loads(wins.to_json()),
+            "@total_withdrawal_tx": json.loads(totalWitdh.to_json()),
+            "@total_deposit_tx": json.loads(totalDeposit.to_json())
         }
     }
 
