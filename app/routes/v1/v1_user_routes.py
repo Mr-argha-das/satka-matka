@@ -126,5 +126,26 @@ def user_details(user_id: str, use2r=Depends(require_admin)):
     }
     wins = Transaction.objects(**query).order_by("-created_at")
     return {
-        "data": json.loads(user.to_json())
+        "data": {
+            "@user":json.loads(user.to_json()),
+            "@total_deposit": total,
+            "@total_withdrawal": total2,
+            "@user_bids": json.loads(bids.to_json()),
+            "@wins": json.loads(wins.to_json())
+        }
+    }
+
+@router.get("/users/today-created")
+def today_created_users(admin_user = Depends(require_admin)):
+    today = datetime.utcnow().date()
+
+    users = User.objects(
+        created_at__gte=datetime.combine(today, datetime.min.time()),
+        created_at__lte=datetime.combine(today, datetime.max.time())
+    )
+
+    return {
+        "message": "Today's created users fetched successfully",
+        "count": len(users),
+        "users": json.loads(users.to_json())
     }
