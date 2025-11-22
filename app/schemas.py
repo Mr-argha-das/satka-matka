@@ -81,3 +81,7 @@ class siteDataSchema(BaseModel):
     add_money_html: str | None = None
     notice_board_html: str | None = None
     withdraw_terms_html: str | None = None
+
+class NotificationSchema(BaseModel):
+    title: str
+    # created_at: datetime.datetime

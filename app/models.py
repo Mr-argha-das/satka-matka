@@ -1,6 +1,6 @@
 from mongoengine import Document, StringField, EmailField, DateTimeField, FloatField, IntField, ReferenceField, BooleanField, ListField, EmbeddedDocumentField, EmbeddedDocument
-import datetime
 
+import datetime
 from mongoengine import Document, StringField
 from pydantic import BaseModel
 
@@ -174,3 +174,10 @@ class siteData(Document):
     withdraw_terms_html = StringField(default="")
 
     meta = {"collection": "site_data"}
+
+
+class Notification(Document):
+    title = StringField(required=True)
+    created_at = DateTimeField(default=datetime.datetime.utcnow)
+
+    meta = {"collection": "notifications", "ordering": ["-created_at"]}
