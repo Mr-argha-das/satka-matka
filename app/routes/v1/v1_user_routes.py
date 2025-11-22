@@ -1,6 +1,6 @@
 import json
 from app.utils import hash_password, verify_password
-from ...models import User
+from ...models import User, Transaction,Withdrawal,Bid
 from datetime import datetime
 from fastapi import APIRouter, HTTPException, Depends,Form
 from pydantic import BaseModel
@@ -42,8 +42,12 @@ def update_is_bet(user_id: str, payload: BetUpdate,user=Depends(require_admin)):
 @router.get("/users/status/disapprove")
 def inactive_users(user=Depends(require_admin)):
     users = User.objects(status=False)
-    return [user.to_mongo() for user in users]
-@router.get("/users/status/true")
+    return {
+        "message": "Inactive users fetched successfully",
+        "count": len(users),
+        "users": json.loads(users.to_json())    
+    }
+@router.get("/users/status/approve")
 def active_users(user=Depends(require_admin)):
     users = User.objects(status=True)
     return {
@@ -77,8 +81,6 @@ def add_money(amount: float, user_id: str, user=Depends(require_admin)):
 
     user.update(inc__balance=amount)
     return {"message": f"Added {amount} to user {user.username} successfully"}
-
-
 @router.get("/user/witdrawal-money")
 def deduct_money(amount: float, user_id: str, user=Depends(require_admin)):
     user = User.objects(id=user_id).first()
@@ -94,7 +96,6 @@ def deduct_money(amount: float, user_id: str, user=Depends(require_admin)):
     user.update(inc__balance=-amount)
 
     return {"message": f"Deducted {amount} from user {user.username} successfully"}
-
 @router.post("/user/update-password")
 def update_password(
     user_id: str = Form(...),
@@ -108,15 +109,20 @@ def update_password(
 
     return {"message": "Password updated successfully"}
 
-
-@router.get("/user-details/{user_id}")
-def user_details(user_id: str, user=Depends(require_admin)):
+@router.get("/user/user-details/{user_id}")
+def user_details(user_id: str, use2r=Depends(require_admin)):
     user = User.objects(id=user_id).first()
     if not user:
         raise HTTPException(404, "User not found")
+    total = Transaction.objects(user_id=str(user_id), status="Approved",payment_method="Deposit").sum("amount") or 0.0
+    total2 = Withdrawal.objects(user_id=str(user_id), status="SUCCESS").sum("amount") or 0.0
+    bids = Bid.objects(user_id=str(user.id)).order_by("-created_at").limit(100)
+    query = {
+        "user_id": str(user.id),
+        "payment_method": "WIN",
+        "status": "SUCCESS"
+    }
+    wins = Transaction.objects(**query).order_by("-created_at")
     return {
         "data": json.loads(user.to_json())
     }
-
-
-
