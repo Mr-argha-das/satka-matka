@@ -73,6 +73,10 @@ class JackpotSlotRequest(BaseModel):
     start_time: str
     end_time: str
 
+class ResultDeclareRequest(BaseModel):
+    slot_id: str
+    panna: str
+
 # ⭐ Add Slot
 @router.post("/starline/add")
 def starline_add(slot_data: StarlineSlotRequest):
@@ -243,20 +247,20 @@ def starline_winning_history(user=Depends(get_current_user)):
 
 # ⭐ Declare Result
 @router.post("/starline/result/declare")
-def starline_result(slot_id: str, panna: str):
+def starline_result(body: ResultDeclareRequest):
 
     now = datetime.utcnow().strftime("%Y-%m-%d")
 
     Result(
-        market_id=slot_id,
+        market_id=body.slot_id,
         date=now,
-        open_digit=panna[-1],
-        close_digit=panna[-1],
-        open_panna=panna,
-        close_panna=panna,
+        open_digit=body.panna[-1],
+        close_digit=body.panna[-1],
+        open_panna=body.panna,
+        close_panna=body.panna,
     ).save()
 
-    settle(slot_id, panna)
+    settle(body.slot_id, body.panna)
 
     return {"msg": "Starline Result Declared"}
 
@@ -446,20 +450,20 @@ def jackpot_winning_history(user=Depends(get_current_user)):
 
 # ⭐ Declare Result
 @router.post("/jackpot/result/declare")
-def jackpot_result(slot_id: str, panna: str):
+def jackpot_result(body: ResultDeclareRequest):
 
     now = datetime.utcnow().strftime("%Y-%m-%d")
 
     Result(
-        market_id=slot_id,
+        market_id=body.slot_id,
         date=now,
-        open_digit=panna[-1],
-        close_digit=panna[-1],
-        open_panna=panna,
-        close_panna=panna,
+        open_digit=body.panna[-1],
+        close_digit=body.panna[-1],
+        open_panna=body.panna,
+        close_panna=body.panna,
     ).save()
 
-    settle(slot_id, panna)
+    settle(body.slot_id, body.panna)
 
     return {"msg": "Jackpot Result Declared"}
 

@@ -2,6 +2,15 @@ from fastapi import APIRouter, Depends, HTTPException
 from ..models import Market, Result, Bid, Wallet, User
 from ..auth import require_admin
 import datetime
+from pydantic import BaseModel
+
+class ResultInput(BaseModel):
+    market_id: str
+    date: str
+    open_digit: str = "-"
+    close_digit: str = "-"
+    open_panna: str = "-"
+    close_panna: str = "-"
 
 router = APIRouter(prefix="/admin/result")
 
@@ -107,50 +116,45 @@ def settle_results(market_id: str, result_obj: Result):
 
 @router.post("/declare")
 def declare_result(
-    market_id: str,
-    date: str,
-    open_digit: str = "-",
-    close_digit: str = "-",
-    open_panna: str = "-",
-    close_panna: str = "-",
+    result_input: ResultInput,
     admin=Depends(require_admin)
 ):
 
     # Validate Market
     try:
-        Market.objects.get(id=market_id)
+        Market.objects.get(id=result_input.market_id)
     except:
         raise HTTPException(404, "Market not found")
 
     # Check if result already exists for this date
-    existing = Result.objects(market_id=market_id, date=date).first()
+    existing = Result.objects(market_id=result_input.market_id, date=result_input.date).first()
     if existing:
         result_obj = existing
         result_obj.update(
-            open_digit=open_digit,
-            close_digit=close_digit,
-            open_panna=open_panna,
-            close_panna=close_panna,
+            open_digit=result_input.open_digit,
+            close_digit=result_input.close_digit,
+            open_panna=result_input.open_panna,
+            close_panna=result_input.close_panna,
         )
     else:
         result_obj = Result(
-            market_id=market_id,
-            date=date,
-            open_digit=open_digit,
-            close_digit=close_digit,
-            open_panna=open_panna,
-            close_panna=close_panna,
+            market_id=result_input.market_id,
+            date=result_input.date,
+            open_digit=result_input.open_digit,
+            close_digit=result_input.close_digit,
+            open_panna=result_input.open_panna,
+            close_panna=result_input.close_panna,
         ).save()
 
     # Run Settlement
-    settle_results(market_id, result_obj)
+    settle_results(result_input.market_id, result_obj)
 
     return {
         "msg": "Result declared & settlement completed",
-        "market_id": market_id,
-        "date": date,
-        "open_digit": open_digit,
-        "close_digit": close_digit,
-        "open_panna": open_panna,
-        "close_panna": close_panna
+        "market_id": result_input.market_id,
+        "date": result_input.date,
+        "open_digit": result_input.open_digit,
+        "close_digit": result_input.close_digit,
+        "open_panna": result_input.open_panna,
+        "close_panna": result_input.close_panna
     }
