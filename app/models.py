@@ -1,5 +1,9 @@
 from mongoengine import Document, StringField, EmailField, DateTimeField, FloatField, IntField, ReferenceField, BooleanField, ListField, EmbeddedDocumentField, EmbeddedDocument
 import datetime
+
+from mongoengine import Document, StringField
+from pydantic import BaseModel
+
 import uuid
 class User(Document):
     meta = {"collection": "users"}
@@ -108,3 +112,65 @@ class JackpotSlot(Document):
     end_time = StringField(required=True)
     games = ListField(StringField())
     is_active = BooleanField(default=True)
+
+
+# How to Play
+
+class HowToPlay(Document):
+    content = StringField(required=True)   # HTML content from TinyMCE
+    video_id = StringField()               # YouTube video ID
+
+    meta = {"collection": "how_to_play"}
+
+
+# Main Setting
+class SiteSettings(Document):
+    min_deposit = FloatField(default=0)
+    max_deposit = FloatField(default=0)
+    min_withdraw = FloatField(default=0)
+    max_withdraw = FloatField(default=0)
+    min_transfer = FloatField(default=0)
+    max_transfer = FloatField(default=0)
+    min_bid = FloatField(default=0)
+    max_bid = FloatField(default=0)
+    welcome_bonus = FloatField(default=0)
+    withdraw_open_time = StringField(default="")
+    withdraw_close_time = StringField(default="")
+    website_link = StringField(default="")
+
+    meta = {"collection": "site_settings"}
+
+
+# Site data 
+
+class siteData(Document):
+    # Basic contacts
+    mobile_number = StringField(default="")
+    whatsapp_number = StringField(default="")
+    telegram_link = StringField(default="")
+
+    # Notification lines
+    dashboard_notification_line = StringField(default="")
+    add_fund_notification_line = StringField(default="")
+
+    # UPI Fields
+    upi_id = StringField(default="")
+    upi_gateway_merchant_id = StringField(default="")
+    manual_upi = StringField(default="")
+
+    # Videos
+    video1 = StringField(default="")
+    video2 = StringField(default="")
+    video3 = StringField(default="")
+    video4 = StringField(default="")
+
+    # Dropdown
+    auto_result = BooleanField(default=True)
+
+    # HTML Editors
+    withdraw_money_html = StringField(default="")
+    add_money_html = StringField(default="")
+    notice_board_html = StringField(default="")
+    withdraw_terms_html = StringField(default="")
+
+    meta = {"collection": "site_data"}
