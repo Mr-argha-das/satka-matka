@@ -158,7 +158,7 @@ from fastapi import APIRouter, HTTPException
 from datetime import datetime, timedelta
 from ..models import Result, Market
 
-router = APIRouter(prefix="/market")
+
 
 def last_digit(panna):
     if not panna or panna == "-" or len(panna) != 3:
