@@ -176,6 +176,15 @@ def get_profile(user=Depends(get_current_user)):
         "role": user.role
     }
 
+@router.get("/profile2")
+def get_profile2(user=Depends(get_current_user)):
+    return {
+        "username": user.username,
+        "mobile": user.mobile,
+        "created_at": user.created_at,
+        "role": user.role
+    }
+
 
 @router.put("/profile")
 def update_profile(
