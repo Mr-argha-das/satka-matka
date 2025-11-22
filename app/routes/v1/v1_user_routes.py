@@ -53,6 +53,8 @@ def update_is_bet(user_id: str, payload: BetUpdate,user=Depends(require_admin)):
 def inactive_users(user=Depends(require_admin)):
     users = User.objects(status=False)
     return [user.to_mongo() for user in users]
+
+
 @router.get("/users/status/true")
 def active_users(user=Depends(require_admin)):
     users = User.objects(status=True)
@@ -87,6 +89,8 @@ def add_money(amount: float, user_id: str, user=Depends(require_admin)):
 
     user.update(inc__balance=amount)
     return {"message": f"Added {amount} to user {user.username} successfully"}
+
+
 @router.get("/user/witdrawal-money")
 def deduct_money(amount: float, user_id: str, user=Depends(require_admin)):
     user = User.objects(id=user_id).first()
@@ -102,6 +106,7 @@ def deduct_money(amount: float, user_id: str, user=Depends(require_admin)):
     user.update(inc__balance=-amount)
 
     return {"message": f"Deducted {amount} from user {user.username} successfully"}
+
 @router.post("/user/update-password")
 def update_password(
     user_id: str = Form(...),
@@ -114,6 +119,7 @@ def update_password(
     user.update(password_hash=new_hash)
 
     return {"message": "Password updated successfully"}
+
 
 @router.get("/user-details/{user_id}")
 def user_details(user_id: str, user=Depends(require_admin)):
