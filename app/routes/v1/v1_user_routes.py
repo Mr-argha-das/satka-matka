@@ -3,7 +3,7 @@ from datetime import datetime
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from ...auth import require_admin
-router = APIRouter(prefix="/admin", tags=["Admin user management"])
+router = APIRouter(prefix="/api/v1/admin", tags=["Admin user management"])
 
 @router.get("/users")
 def all_users(user=Depends(require_admin)):
