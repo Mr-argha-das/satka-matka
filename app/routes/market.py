@@ -156,3 +156,53 @@ def get_all_markets():
 
 # [Install]
 # WantedBy=multi-user.target
+
+from fastapi import APIRouter, HTTPException
+from datetime import datetime, timedelta
+from ..models import Result, Market
+
+router = APIRouter(prefix="/market")
+
+def last_digit(panna):
+    if not panna or panna == "-" or len(panna) != 3:
+        return "-"
+    total = sum(int(d) for d in panna)
+    return str(total % 10)
+
+
+# ================================
+# ⭐ MONTHLY CHART API
+# ================================
+@router.get("/chart/monthly/{market_id}")
+def get_monthly_chart(market_id: str):
+
+    # Check market exists
+    market = Market.objects(id=market_id).first()
+    if not market:
+        raise HTTPException(404, "Market not found")
+
+    # Get last 30 days result
+    results = Result.objects(market_id=str(market_id)).order_by("-date")[:30]
+
+    chart = []
+
+    for r in results:
+
+        # Extract day name (Mon, Tue…)
+        date_obj = datetime.strptime(r.date, "%Y-%m-%d")
+        day_name = date_obj.strftime("%a")  # e.g. Wed, Tue
+
+        chart.append({
+            "date": r.date,
+            "day": day_name,
+            "open_panna": r.open_panna,
+            "open_digit": last_digit(r.open_panna),
+            "close_panna": r.close_panna,
+            "close_digit": last_digit(r.close_panna)
+        })
+
+    return {
+        "market_name": market.name,
+        "chart_count": len(chart),
+        "chart": chart
+    }
