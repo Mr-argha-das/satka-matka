@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from ..models import Market, Result, Bid, Wallet, User
-from ..auth import require_admin
+from ..auth import get_current_user, require_admin
 import datetime
 from pydantic import BaseModel
 
@@ -159,6 +159,7 @@ def declare_result(
         "close_panna": result_input.close_panna
     }
 
+
 @router.get("/winning")
 def winning_history(user = Depends(get_current_user)):
     user_id = str(user.id)
@@ -251,4 +252,5 @@ def winning_history(user = Depends(get_current_user)):
     return {
         "total_wins": len(history),
         "history": history
+
     }

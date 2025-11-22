@@ -180,6 +180,8 @@ def get_profile(user=Depends(get_current_user)):
 def read_users_me(current_user: User = Depends(get_current_user)):
     return json.loads(current_user.to_json())
 
+
+
 @router.get("/profile2")
 def get_profile2(user=Depends(get_current_user)):
     return {

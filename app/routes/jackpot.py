@@ -205,17 +205,17 @@ def starline_bid_history(user=Depends(get_current_user)):
     } for b in bids]
 
 
-# ⭐ NEW → User Winning History (No DB Field Added)
 @router.get("/starline/winning/history")
 def starline_winning_history(user=Depends(get_current_user)):
-    results = Result.objects(session="starline")
-    winning = []
-    for r in results:
+    results = Result.objects()  # FIXED: removed session filter
 
+    winning = []
+
+    for r in results:
         bids = Bid.objects(
             user_id=str(user.id),
             market_id=r.market_id,
-            session="starline"
+            session="starline"  # This is OK if Bid has session field
         )
 
         for b in bids:
@@ -412,23 +412,26 @@ def jackpot_bid_history(user=Depends(get_current_user)):
 @router.get("/jackpot/winning/history")
 def jackpot_winning_history(user=Depends(get_current_user)):
 
-    results = Result.objects(session="jackpot")
+    results = Result.objects()   # FIXED — removed invalid filter
     winning = []
 
     for r in results:
 
+        # Fetch this user's jackpot bids for this market
         bids = Bid.objects(
             user_id=str(user.id),
             market_id=r.market_id,
-            session="jackpot"
+            session="jackpot"     # OK because Bid has session field
         )
 
         for b in bids:
             win = False
 
+            # SINGLE DIGIT WIN
             if b.game_type == "single_digit" and b.digit == r.open_digit:
                 win = True
 
+            # PANNA WIN
             if b.game_type in ["single_panna", "double_panna", "triple_panna"]:
                 if b.digit == r.open_panna:
                     win = True
@@ -446,7 +449,6 @@ def jackpot_winning_history(user=Depends(get_current_user)):
                 })
 
     return winning
-
 
 # ⭐ Declare Result
 @router.post("/jackpot/result/declare")
