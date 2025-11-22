@@ -109,7 +109,7 @@ def update_password(
 
     return {"message": "Password updated successfully"}
 
-@router.get("/user-details/{user_id}")
+@router.get("/user/user-details/{user_id}")
 def user_details(user_id: str, use2r=Depends(require_admin)):
     user = User.objects(id=user_id).first()
     if not user:
