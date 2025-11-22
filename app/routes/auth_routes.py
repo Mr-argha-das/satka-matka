@@ -1,3 +1,4 @@
+from datetime import datetime
 from fastapi import APIRouter, HTTPException
 from ..models import User
 from ..schemas import UserCreate, LoginSchema, Token, UserOut
@@ -17,8 +18,10 @@ def register(payload: UserCreate):
     user = User(
         username=payload.username,
         mobile=payload.mobile,
-  
-        password_hash=hashed
+        role=payload.role,
+        password_hash=hashed,
+        
+
     ).save()
 
     return UserOut(
@@ -29,15 +32,14 @@ def register(payload: UserCreate):
         balance=user.balance,
         role=user.role
     )
-
-
 @router.post("/token", response_model=Token)
 def login(payload: LoginSchema):
     user = User.objects(mobile=payload.mobile).first()
-
-    if not user or not verify_password(payload.password, user.password_hash):
-        raise HTTPException(401, "Incorrect mobile or password")
-
+    if not user:
+        raise HTTPException(status_code=401, detail="Incorrect mobile or password")
+    if not verify_password(payload.password, user.password_hash):
+        raise HTTPException(status_code=401, detail="Incorrect mobile or password")
     token = create_access_token(str(user.id))
+    user.update(last_login=datetime.utcnow())
 
     return Token(access_token=token)
