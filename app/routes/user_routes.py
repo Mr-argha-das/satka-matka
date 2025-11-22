@@ -172,7 +172,8 @@ def get_profile(user=Depends(get_current_user)):
     return {
         "username": user.username,
         "mobile": user.mobile,
-        "created_at": user.created_at
+        "created_at": user.created_at,
+        "role": user.role
     }
 
 
@@ -211,7 +212,7 @@ def all_users():
     return [{
         "user_id": str(u.id),
         "username": u.username,
-        "email": u.email,
-        "full_name": u.full_name,
+        "mobile": u.mobile,
+        "role": u.role,
         "created_at": u.created_at
     } for u in users]
