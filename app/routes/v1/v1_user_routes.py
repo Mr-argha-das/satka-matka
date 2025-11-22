@@ -133,3 +133,17 @@ def user_details(user_id: str, use2r=Depends(require_admin)):
         }
     }
 
+@router.get("/users/today-created")
+def today_created_users(admin_user = Depends(require_admin)):
+    today = datetime.utcnow().date()
+
+    users = User.objects(
+        created_at__gte=datetime.combine(today, datetime.min.time()),
+        created_at__lte=datetime.combine(today, datetime.max.time())
+    )
+
+    return {
+        "message": "Today's created users fetched successfully",
+        "count": len(users),
+        "users": json.loads(users.to_json())
+    }
