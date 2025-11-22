@@ -1,4 +1,5 @@
 import json
+from app.utils import hash_password, verify_password
 from fastapi import APIRouter, Depends, HTTPException, Form, Query
 from datetime import datetime
 import uuid
