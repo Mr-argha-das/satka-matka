@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends
 from ..auth import get_current_user
-from ..models import Transaction, Withdrawal, Bid, DepositQR
+from ..models import Market, Transaction, Withdrawal, Bid, DepositQR
 from datetime import datetime
 router = APIRouter(prefix="/passbook", tags=["Passbook"])
 
@@ -93,7 +93,7 @@ def passbook_history(
             entries.append({
                 "type": "BID",
                 "game_type": b.game_type,
-                "market_id": b.market_id,
+                "market_id": Market.objects(id=b.market_id).first().name if Market.objects(id=b.market_id).first() else "Deleted Market",
                 "session": b.session,
                 "digit": b.digit,
                 "debit": b.points,
