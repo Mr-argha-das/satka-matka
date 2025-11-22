@@ -117,3 +117,6 @@ def user_details(user_id: str, user=Depends(require_admin)):
     return {
         "data": json.loads(user.to_json())
     }
+
+
+
