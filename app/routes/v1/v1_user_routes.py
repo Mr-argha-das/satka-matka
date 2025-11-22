@@ -39,6 +39,9 @@ def update_is_bet(user_id: str, payload: BetUpdate,user=Depends(require_admin)):
 
     user.update(is_bet=payload.is_bet)
     return {"message": "Bet Permission updated successfully"}
+
+
+# Unapproved Users
 @router.get("/users/status/disapprove")
 def inactive_users(user=Depends(require_admin)):
     users = User.objects(status=False)
@@ -47,6 +50,8 @@ def inactive_users(user=Depends(require_admin)):
         "count": len(users),
         "users": json.loads(users.to_json())    
     }
+
+# Approved Users
 @router.get("/users/status/approve")
 def active_users(user=Depends(require_admin)):
     users = User.objects(status=True)
@@ -57,6 +62,8 @@ def active_users(user=Depends(require_admin)):
     }
 from datetime import datetime
 
+
+# Login Today Users
 @router.get("/users/today-logins")
 def todays_logins(user=Depends(require_admin)):
     today = datetime.utcnow().date()
@@ -98,6 +105,8 @@ def deduct_money(amount: float, user_id: str, user=Depends(require_admin)):
 
     return {"message": f"Deducted {amount} from user {user.username} successfully"}
 
+
+
 @router.post("/user/update-password")
 def update_password(
     user_id: str = Form(...),
@@ -110,6 +119,8 @@ def update_password(
     user.update(password_hash=new_hash)
 
     return {"message": "Password updated successfully"}
+
+
 
 @router.get("/user/user-details/{user_id}")
 def user_details(user_id: str, use2r=Depends(require_admin)):
@@ -135,6 +146,8 @@ def user_details(user_id: str, use2r=Depends(require_admin)):
         }
     }
 
+
+# Today Registered Users
 @router.get("/users/today-created")
 def today_created_users(admin_user = Depends(require_admin)):
     today = datetime.utcnow().date()
