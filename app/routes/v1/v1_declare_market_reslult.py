@@ -164,6 +164,8 @@ def get_results(date: str, admin=Depends(require_admin)):
             "close_digit": r.close_digit,
             "open_declared_at": getattr(r, "open_declared_at", None),
             "close_declared_at": getattr(r, "close_declared_at", None),
+            "close_timne": market.close_time if market else "-",
+            "open_time": market.open_time if market else "-",
         })
 
     return {"data": output}
