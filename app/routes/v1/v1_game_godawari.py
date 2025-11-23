@@ -114,7 +114,7 @@ def get_user_markets(user=Depends(get_current_user)):
         data["status"] = auto_status
 
         # ---- GET TODAY'S RESULT FOR THIS MARKET ----
-        todays_result = Result.objects(
+        todays_result = ResultGod.objects(
             market_id=str(m.id),
             date__gte=start,
             date__lte=end
@@ -148,7 +148,7 @@ def get_user_markets(user=Depends(get_current_user)):
         data["status"] = auto_status
 
         # ---- GET TODAY'S RESULT FOR THIS MARKET ----
-        todays_result = Result.objects(
+        todays_result = ResultGod.objects(
             market_id=str(m.id),
             date__gte=start,
             date__lte=end
@@ -204,7 +204,7 @@ def get_markets(admin=Depends(require_admin)):
         data["status"] = auto_status
 
         # ---- GET TODAY'S RESULT FOR THIS MARKET ----
-        todays_result = Result.objects(
+        todays_result = ResultGod.objects(
             market_id=str(m.id),
             date__gte=start,
             date__lte=end
@@ -237,7 +237,7 @@ def get_market(market_id: str, admin=Depends(require_admin)):
     start = datetime.combine(today, time.min)
     end = datetime.combine(today, time.max)
 
-    todays_result = Result.objects(
+    todays_result = ResultGod.objects(
         market_id=str(market.id),
         date__gte=start,
         date__lte=end

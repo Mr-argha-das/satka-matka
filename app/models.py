@@ -93,6 +93,7 @@ class Result(Document):
 class DepositQR(Document):
     user_id = StringField(required=True)
     image_url = StringField(required=True)
+    trnx_id = StringField(required=False)
     status = StringField(default="PENDING")  # PENDING, SUCCESS, FAILED
     amount = FloatField(default=0)
     created_at = DateTimeField(default=datetime.datetime.utcnow)
