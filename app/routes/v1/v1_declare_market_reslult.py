@@ -1,5 +1,6 @@
+import uuid
 from app.auth import require_admin
-from app.models import Bid, Market, Result
+from app.models import Bid, Market, RateChart, Result, Transaction, Wallet
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 # from ..auth import require_admin
@@ -39,57 +40,88 @@ class ResultDeclare(BaseModel):
 # SETTLEMENT LOGIC
 # -----------------------------
 def settle_results(market_id: str, result_obj: Result):
+
+    # Load rate chart
+    chart = RateChart.objects().first()
+    if not chart:
+        print("Rate chart not found!")
+        return
+
     open_digit = result_obj.open_digit
     close_digit = result_obj.close_digit
     open_panna = result_obj.open_panna
     close_panna = result_obj.close_panna
 
     bids = Bid.objects(market_id=market_id)
+
+    # Mapping game types to RateChart type-2 fields
+    RATE_MAP = {
+        "single": chart.single_digit_2,
+        "jodi": chart.jodi_digit_2,
+        "single_panna": chart.single_pana_2,
+        "double_panna": chart.double_pana_2,
+        "triple_panna": chart.tripple_pana_2,
+        "half_sangam": chart.half_sangam_2,
+        "full_sangam": chart.full_sangam_2,
+    }
+
     for bid in bids:
         win = False
 
-        # Single digit
+        # --------------------- WIN LOGIC ---------------------
+
+        # 1. SINGLE DIGIT (open)
         if bid.game_type == "single" and bid.digit == open_digit:
             win = True
 
-        # Jodi
+        # 2. JODI
         if bid.game_type == "jodi" and bid.digit == open_digit + close_digit:
             win = True
 
-        # Open Panna
+        # 3. SINGLE PANNA (open panna)
         if bid.game_type == "single_panna" and bid.digit == open_panna:
             win = True
 
-        # Close Panna
+        # 4. DOUBLE PANNA (close panna)
         if bid.game_type == "double_panna" and bid.digit == close_panna:
             win = True
 
-        # Triple panna open/close
+        # 5. TRIPLE PANNA (open/close session)
         if bid.game_type == "triple_panna":
             if bid.session == "open" and bid.digit == open_panna:
                 win = True
             if bid.session == "close" and bid.digit == close_panna:
                 win = True
 
-        # Half Sangam
+        # 6. HALF SANGAM (open panna + close digit)
         if bid.game_type == "half_sangam":
             panna, digit = bid.digit.split("-")
             if panna == open_panna and digit == close_digit:
                 win = True
 
-        # Full Sangam
+        # 7. FULL SANGAM (open panna + close panna)
         if bid.game_type == "full_sangam":
             op, cp = bid.digit.split("-")
             if op == open_panna and cp == close_panna:
                 win = True
 
-        # Credit winnings
+        # --------------------- PAYOUT -------------------------
         if win:
-            rate = GAME_RATES.get(bid.game_type, 0)
+            rate = RATE_MAP.get(bid.game_type, 0)
             amount = bid.points * rate
+
             wallet = Wallet.objects(user_id=bid.user_id).first()
             if wallet:
                 wallet.update(inc__balance=amount)
+                tx = Transaction(
+                     tx_id=str(uuid.uuid4()),
+                     user_id=str(bid.user_id),
+                     amount=amount,
+                     payment_method="Win",
+                     status="Approved"
+                     ).save()
+
+
 
 
 # -----------------------------
@@ -103,8 +135,12 @@ def declare_result(payload: ResultDeclare, admin=Depends(require_admin)):
     if not market:
         raise HTTPException(404, "Market not found")
 
-    # Find or create
-    result = Result.objects(market_id=payload.game_id, date=payload.date).first()
+    # Find or create today's result entry
+    result = Result.objects(
+        market_id=payload.game_id,
+        date=payload.date
+    ).first()
+
     if not result:
         result = Result(
             market_id=payload.game_id,
@@ -117,17 +153,20 @@ def declare_result(payload: ResultDeclare, admin=Depends(require_admin)):
 
     now = datetime.datetime.now()
 
-    # Apply session logic
+    # OPEN SESSION
     if session == "open":
         if not payload.open_digit and not payload.open_panna:
             raise HTTPException(400, "Open digit or panna required")
+
         result.open_digit = payload.open_digit or result.open_digit
         result.open_panna = payload.open_panna or result.open_panna
         result.open_declared_at = now
 
+    # CLOSE SESSION
     elif session == "close":
         if not payload.close_digit and not payload.close_panna:
             raise HTTPException(400, "Close digit or panna required")
+
         result.close_digit = payload.close_digit or result.close_digit
         result.close_panna = payload.close_panna or result.close_panna
         result.close_declared_at = now
@@ -136,9 +175,12 @@ def declare_result(payload: ResultDeclare, admin=Depends(require_admin)):
         raise HTTPException(400, "Session must be open or close")
 
     result.save()
+
+    # SETTLE WINNERS
     settle_results(payload.game_id, result)
 
     return {"message": "Result declared successfully"}
+
 
 
 # -----------------------------

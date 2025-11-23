@@ -96,7 +96,74 @@ def create_market(data: MarketInput,admin = Depends(require_admin)):
     except NotUniqueError:
         raise HTTPException(status_code=400, detail="Market already exists")
     
+@router.get("/user/markets/")
+def get_user_markets(user=Depends(get_current_user)):
+    markets = Market.objects(is_active=True, marketType="Market")
+    final_markets = []
+    
+    # TODAY DATE RANGE (12:00 AM – 11:59 PM)
+    today = datetime.utcnow().date()
+    start = datetime.combine(today, time.min)
+    end = datetime.combine(today, time.max)
 
+    for m in markets:
+        data = json.loads(m.to_json())
+
+        # AUTO CALCULATE STATUS
+        auto_status = compute_status(m.open_time, m.close_time)
+        data["status"] = auto_status
+
+        # ---- GET TODAY'S RESULT FOR THIS MARKET ----
+        todays_result = Result.objects(
+            market_id=str(m.id),
+            date__gte=start,
+            date__lte=end
+        ).first()
+
+        data["today_result"] = (
+            json.loads(todays_result.to_json()) if todays_result else None
+        )
+
+        final_markets.append(data)
+
+    return {
+        "message": "Markets fetched successfully",
+        "data": final_markets
+    }
+@router.get("/user/starline/")
+def get_user_markets(user=Depends(get_current_user)):
+    markets = Market.objects(is_active=True, marketType="Starline")
+    final_markets = []
+    
+    # TODAY DATE RANGE (12:00 AM – 11:59 PM)
+    today = datetime.utcnow().date()
+    start = datetime.combine(today, time.min)
+    end = datetime.combine(today, time.max)
+
+    for m in markets:
+        data = json.loads(m.to_json())
+
+        # AUTO CALCULATE STATUS
+        auto_status = compute_status(m.open_time, m.close_time)
+        data["status"] = auto_status
+
+        # ---- GET TODAY'S RESULT FOR THIS MARKET ----
+        todays_result = Result.objects(
+            market_id=str(m.id),
+            date__gte=start,
+            date__lte=end
+        ).first()
+
+        data["today_result"] = (
+            json.loads(todays_result.to_json()) if todays_result else None
+        )
+
+        final_markets.append(data)
+
+    return {
+        "message": "Markets fetched successfully",
+        "data": final_markets
+    }
 
 def compute_status(open_time: str, close_time: str):
     """Return True if current time is between open_time and close_time."""
