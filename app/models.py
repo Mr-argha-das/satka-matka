@@ -40,12 +40,10 @@ class Transaction(Document):
     confirmed_at = DateTimeField()
     screenshot = StringField()
 
-
 class Wallet(Document):
     user_id = StringField(required=True, unique=True)
     balance = FloatField(default=0)
     updated_at =DateTimeField(default=datetime.datetime.utcnow)
-
 
 class Withdrawal(Document):
     wd_id = StringField(default=lambda: str(uuid.uuid4()))
