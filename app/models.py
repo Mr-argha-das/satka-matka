@@ -62,10 +62,10 @@ class Market(Document):
     name = StringField(required=True, unique=True)
     open_time = StringField(required=True)
     close_time = StringField(required=True)
-    open_result = StringField(default="-")
-    close_result = StringField(default="-")
+    marketType = StringField(required=True,choices=["Market", "Starline"])  # Regular / Starline / Jackpot
     
     is_active = BooleanField(default=True)
+    status = BooleanField(default=True)  # Open / Close
 
 class Bid(Document):
     user_id = StringField(required=True)
@@ -185,3 +185,36 @@ class Notification(Document):
     created_at = DateTimeField(default=datetime.datetime.utcnow)
 
     meta = {"collection": "notifications", "ordering": ["-created_at"]}
+
+class RateChart(Document):
+    meta = {"collection": "rate_chart"}
+
+    # Values for Type 1
+    single_digit_1 = IntField(default=10)
+    jodi_digit_1 = IntField(default=10)
+    single_pana_1 = IntField(default=10)
+    double_pana_1 = IntField(default=10)
+    tripple_pana_1 = IntField(default=10)
+    half_sangam_1 = IntField(default=10)
+    full_sangam_1 = IntField(default=10)
+    left_digit_1 = IntField(default=10)
+    right_digit_1 = IntField(default=10)
+    starline_single_digit_1 = IntField(default=10)
+    starline_single_pana_1 = IntField(default=10)
+    starline_double_pana_1 = IntField(default=10)
+    starline_tripple_pana_1 = IntField(default=10)
+
+    # Values for Type 2
+    single_digit_2 = IntField(default=100)
+    jodi_digit_2 = IntField(default=995)
+    single_pana_2 = IntField(default=1500)
+    double_pana_2 = IntField(default=3000)
+    tripple_pana_2 = IntField(default=7000)
+    half_sangam_2 = IntField(default=10000)
+    full_sangam_2 = IntField(default=100000)
+    left_digit_2 = IntField(default=100)
+    right_digit_2 = IntField(default=100)
+    starline_single_digit_2 = IntField(default=100)
+    starline_single_pana_2 = IntField(default=1500)
+    starline_double_pana_2 = IntField(default=3000)
+    starline_tripple_pana_2 = IntField(default=7000)
