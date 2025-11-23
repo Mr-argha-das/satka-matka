@@ -95,7 +95,7 @@ def create_market(data: MarketInput,admin = Depends(require_admin)):
     
     except NotUniqueError:
         raise HTTPException(status_code=400, detail="Market already exists")
-    
+ 
 @router.get("/user/markets/")
 def get_user_markets(user=Depends(get_current_user)):
     markets = Market.objects(is_active=True, marketType="Market")
