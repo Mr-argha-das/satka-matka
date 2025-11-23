@@ -1,5 +1,6 @@
 import json
 from app.models import Market, RateChart
+
 from fastapi import APIRouter, UploadFile, File, Depends, HTTPException, Form
 from fastapi.responses import FileResponse
 from datetime import datetime
@@ -7,10 +8,11 @@ import os
 import uuid
 from mongoengine.errors import NotUniqueError
 from ...auth import get_current_user, require_admin
-from ...models import DepositQR, Transaction, Wallet, User
+from ...models import DepositQR, Result, Transaction, Wallet, User
 
 from pydantic import BaseModel
 from typing import Optional
+
 
 
 class MarketInput(BaseModel):
@@ -94,22 +96,64 @@ def create_market(data: MarketInput,admin = Depends(require_admin)):
     except NotUniqueError:
         raise HTTPException(status_code=400, detail="Market already exists")
     
+
+from datetime import datetime
+
+def compute_status(open_time: str, close_time: str):
+    """Return True if current time is between open_time and close_time."""
+    try:
+        # Normalize to 24hr format
+        now = datetime.now().strftime("%I:%M %p")
+
+        fmt = "%I:%M %p"
+        open_dt = datetime.strptime(open_time, fmt)
+        close_dt = datetime.strptime(close_time, fmt)
+        now_dt = datetime.strptime(now, fmt)
+
+        # Handle cross-midnight cases
+        if open_dt <= close_dt:
+            return open_dt <= now_dt <= close_dt
+        else:
+            return now_dt >= open_dt or now_dt <= close_dt
+
+    except Exception:
+        # if time invalid → fallback to DB saved value
+        return False    
+    
+
 @router.get("/market/")
 def get_markets(admin = Depends(require_admin)):
     markets = Market.objects()
+    result = []
+
+    for m in markets:
+        data = json.loads(m.to_json())
+
+        # AUTO CALCULATE STATUS
+        auto_status = compute_status(m.open_time, m.close_time)
+        data["status"] = auto_status
+
+        result.append(data)
+
     return {
         "message": "Markets fetched successfully",
-        "data" : json.loads(markets.to_json())
+        "data": result
     }
 
 @router.get("/market/{market_id}")
-def get_market(market_id: str,admin = Depends(require_admin)):
+def get_market(market_id: str, admin=Depends(require_admin)):
     market = Market.objects(id=market_id).first()
     if not market:
         raise HTTPException(status_code=404, detail="Market not found")
+
+    data = json.loads(market.to_json())
+
+    # AUTO CALCULATE STATUS
+    data["status"] = compute_status(market.open_time, market.close_time)
+
     return {
         "message": "Market fetched successfully",
-        "data": json.loads(market.to_json())
+        "data": data
     }
 
 @router.put("/market/{market_id}")
@@ -144,6 +188,8 @@ def update_market_status(market_id: str, status: bool,admin = Depends(require_ad
 
     return {"message": "Market status updated", "status": status}
 
+
+
 @router.delete("/market/{market_id}")
 def delete_market(market_id: str,admin = Depends(require_admin)):
     market = Market.objects(id=market_id).first()
@@ -152,3 +198,6 @@ def delete_market(market_id: str,admin = Depends(require_admin)):
 
     market.delete()
     return {"message": "Market deleted successfully"}
+
+
+

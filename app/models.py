@@ -83,11 +83,11 @@ class Bid(Document):
 class Result(Document):
     market_id = StringField(required=True)
     date = StringField(required=True)
+    open_panna = StringField()
+    close_panna = StringField()
+    open_digit = StringField()
+    close_digit = StringField()
 
-    open_panna = StringField(default="-")
-    close_panna = StringField(default="-")
-    open_digit = StringField(default="-")
-    close_digit = StringField(default="-")
 
 class DepositQR(Document):
     user_id = StringField(required=True)
