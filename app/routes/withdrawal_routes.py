@@ -68,7 +68,7 @@ def my_withdrawals(user=Depends(get_current_user)):
 
 @router.get("/admin/pending", dependencies=[Depends(require_admin)])
 def admin_pending():
-    pending = Withdrawal.objects(status="PENDING").order_by("-created_at")
+    pending = Withdrawal.objects.order_by("-created_at")
     return [
         {
             "wd_id": w.wd_id,

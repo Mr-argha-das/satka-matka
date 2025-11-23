@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from datetime import datetime, time
 import uuid
 from mongoengine.errors import NotUniqueError
-from ...auth import require_admin
+from ...auth import get_current_user, require_admin
 from ...models import Transaction, Wallet
 from pydantic import BaseModel
 from typing import Optional
@@ -85,7 +85,75 @@ def create_market(data: MarketInput, admin=Depends(require_admin)):
         return {"message": "Market created successfully", "id": str(market.id)}
     except NotUniqueError:
         raise HTTPException(status_code=400, detail="Market already exists")
+    
+@router.get("/user/markets/")
+def get_user_markets(user=Depends(get_current_user)):
+    markets = MarketGod.objects(is_active=True, marketType="Market")
+    final_markets = []
+    
+    # TODAY DATE RANGE (12:00 AM – 11:59 PM)
+    today = datetime.utcnow().date()
+    start = datetime.combine(today, time.min)
+    end = datetime.combine(today, time.max)
 
+    for m in markets:
+        data = json.loads(m.to_json())
+
+        # AUTO CALCULATE STATUS
+        auto_status = compute_status(m.open_time, m.close_time)
+        data["status"] = auto_status
+
+        # ---- GET TODAY'S RESULT FOR THIS MARKET ----
+        todays_result = ResultGod.objects(
+            market_id=str(m.id),
+            date__gte=start,
+            date__lte=end
+        ).first()
+
+        data["today_result"] = (
+            json.loads(todays_result.to_json()) if todays_result else None
+        )
+
+        final_markets.append(data)
+
+    return {
+        "message": "Markets fetched successfully",
+        "data": final_markets
+    }
+@router.get("/user/starline/")
+def get_user_markets(user=Depends(get_current_user)):
+    markets = MarketGod.objects(is_active=True, marketType="Starline")
+    final_markets = []
+    
+    # TODAY DATE RANGE (12:00 AM – 11:59 PM)
+    today = datetime.utcnow().date()
+    start = datetime.combine(today, time.min)
+    end = datetime.combine(today, time.max)
+
+    for m in markets:
+        data = json.loads(m.to_json())
+
+        # AUTO CALCULATE STATUS
+        auto_status = compute_status(m.open_time, m.close_time)
+        data["status"] = auto_status
+
+        # ---- GET TODAY'S RESULT FOR THIS MARKET ----
+        todays_result = ResultGod.objects(
+            market_id=str(m.id),
+            date__gte=start,
+            date__lte=end
+        ).first()
+
+        data["today_result"] = (
+            json.loads(todays_result.to_json()) if todays_result else None
+        )
+
+        final_markets.append(data)
+
+    return {
+        "message": "Markets fetched successfully",
+        "data": final_markets
+    }
 
 def compute_status(open_time: str, close_time: str):
     try:
@@ -116,8 +184,12 @@ def get_markets(admin=Depends(require_admin)):
 
     for m in markets:
         data = json.loads(m.to_json())
-        data["status"] = compute_status(m.open_time, m.close_time)
 
+        # AUTO CALCULATE STATUS
+        auto_status = compute_status(m.open_time, m.close_time)
+        data["status"] = auto_status
+
+        # ---- GET TODAY'S RESULT FOR THIS MARKET ----
         todays_result = ResultGod.objects(
             market_id=str(m.id),
             date__gte=start,
@@ -147,7 +219,9 @@ def get_market(market_id: str, admin=Depends(require_admin)):
     end = datetime.combine(today, time.max)
 
     todays_result = ResultGod.objects(
-        market_id=str(market.id), date__gte=start, date__lte=end
+        market_id=str(market.id),
+        date__gte=start,
+        date__lte=end
     ).first()
 
     data["today_result"] = (
