@@ -109,6 +109,7 @@ def get_bid_history(
         })
 
     return {"data": results}
+
 @router.post("/bids/edit", dependencies=[Depends(require_admin)])
 def edit_bid(
     bid_id: str,
@@ -136,6 +137,7 @@ def edit_bid(
     bid.save()
 
     return {"message": "Bid updated successfully"}
+
 @router.delete("/bids/delete/{bid_id}", dependencies=[Depends(require_admin)])
 def delete_bid(bid_id: str):
     bid = Bid.objects(id=bid_id).first()
@@ -145,6 +147,7 @@ def delete_bid(bid_id: str):
     bid.delete()
 
     return {"message": "Bid deleted successfully"}
+
 @router.get("/win/history")
 def winning_report(
     date: str = Query(..., description="DD/MM/YYYY"),
@@ -284,6 +287,7 @@ def winning_report(
         })
 
     return {"data": results}
+
 
 @router.get("/admin/deposit", dependencies=[Depends(require_admin)])
 def admin_deposit_report(

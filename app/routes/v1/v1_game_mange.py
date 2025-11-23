@@ -95,7 +95,7 @@ def create_market(data: MarketInput,admin = Depends(require_admin)):
     
     except NotUniqueError:
         raise HTTPException(status_code=400, detail="Market already exists")
-    
+ 
 @router.get("/user/markets/")
 def get_user_markets(user=Depends(get_current_user)):
     markets = Market.objects(is_active=True, marketType="Market")
@@ -130,6 +130,7 @@ def get_user_markets(user=Depends(get_current_user)):
         "message": "Markets fetched successfully",
         "data": final_markets
     }
+
 @router.get("/user/starline/")
 def get_user_markets(user=Depends(get_current_user)):
     markets = Market.objects(is_active=True, marketType="Starline")
@@ -164,6 +165,8 @@ def get_user_markets(user=Depends(get_current_user)):
         "message": "Markets fetched successfully",
         "data": final_markets
     }
+
+
 
 def compute_status(open_time: str, close_time: str):
     """Return True if current time is between open_time and close_time."""
