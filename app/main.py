@@ -5,7 +5,7 @@ from mongoengine import connect
 from app.config import settings
 from app.routes import auth_routes,site_data_routes, notifications_routes, main_settings_routes, how_to_play_routes, admin_routes, user_routes, withdrawal_routes, bids_routes, chart, admin_result, market, jackpot,passbook, images_routes, deposit_qr
 import os
-from app.routes.v1 import v1_declare_market_reslult, v1_user_routes, v1_game_mange
+from app.routes.v1 import v1_declare_market_reslult, v1_user_routes, v1_game_mange, v1_report_management, v1_bids_routes
 
 app = FastAPI(title="Matka Satka Backend")
 
@@ -46,6 +46,8 @@ app.include_router(jackpot.router)
 app.include_router(v1_user_routes.router)
 app.include_router(v1_game_mange.router)
 app.include_router(v1_declare_market_reslult.router)
+app.include_router(v1_report_management.router)
+app.include_router(v1_bids_routes.router)
 
 @app.get("/")
 def root():

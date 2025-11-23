@@ -54,7 +54,7 @@ def settle_results(market_id: str, result_obj: Result):
 
     bids = Bid.objects(market_id=market_id)
 
-    # Mapping game types to RateChart type-2 fields
+    # Rate chart mapping
     RATE_MAP = {
         "single": chart.single_digit_2,
         "jodi": chart.jodi_digit_2,
@@ -70,36 +70,42 @@ def settle_results(market_id: str, result_obj: Result):
 
         # --------------------- WIN LOGIC ---------------------
 
-        # 1. SINGLE DIGIT (open)
+        # SINGLE
         if bid.game_type == "single" and bid.digit == open_digit:
             win = True
 
-        # 2. JODI
+        # JODI
         if bid.game_type == "jodi" and bid.digit == open_digit + close_digit:
             win = True
 
-        # 3. SINGLE PANNA (open panna)
+        # SINGLE PANNA
         if bid.game_type == "single_panna" and bid.digit == open_panna:
             win = True
 
-        # 4. DOUBLE PANNA (close panna)
+        # DOUBLE PANNA
         if bid.game_type == "double_panna" and bid.digit == close_panna:
             win = True
 
-        # 5. TRIPLE PANNA (open/close session)
+        # TRIPLE PANNA
         if bid.game_type == "triple_panna":
             if bid.session == "open" and bid.digit == open_panna:
                 win = True
             if bid.session == "close" and bid.digit == close_panna:
                 win = True
 
-        # 6. HALF SANGAM (open panna + close digit)
+        # HALF SANGAM – BOTH CASES SUPPORTED
         if bid.game_type == "half_sangam":
-            panna, digit = bid.digit.split("-")
-            if panna == open_panna and digit == close_digit:
+            panna, digitx = bid.digit.split("-")
+
+            # Case 1 → open_panna + close_digit
+            if panna == open_panna and digitx == close_digit:
                 win = True
 
-        # 7. FULL SANGAM (open panna + close panna)
+            # Case 2 → close_panna + open_digit
+            if panna == close_panna and digitx == open_digit:
+                win = True
+
+        # FULL SANGAM
         if bid.game_type == "full_sangam":
             op, cp = bid.digit.split("-")
             if op == open_panna and cp == close_panna:
@@ -113,20 +119,15 @@ def settle_results(market_id: str, result_obj: Result):
             wallet = Wallet.objects(user_id=bid.user_id).first()
             if wallet:
                 wallet.update(inc__balance=amount)
-                tx = Transaction(
-                     tx_id=str(uuid.uuid4()),
-                     user_id=str(bid.user_id),
-                     amount=amount,
-                     payment_method="Win",
-                     status="Approved"
-                     ).save()
 
-
-
-
-# -----------------------------
-# DECLARE RESULT
-# -----------------------------
+                # Transaction log
+                Transaction(
+                    tx_id=str(uuid.uuid4()),
+                    user_id=str(bid.user_id),
+                    amount=amount,
+                    payment_method="Win",
+                    status="Approved"
+                ).save()
 @router.post("/result/declare")
 def declare_result(payload: ResultDeclare, admin=Depends(require_admin)):
     session = payload.session.lower()
@@ -180,6 +181,7 @@ def declare_result(payload: ResultDeclare, admin=Depends(require_admin)):
     settle_results(payload.game_id, result)
 
     return {"message": "Result declared successfully"}
+
 
 
 
