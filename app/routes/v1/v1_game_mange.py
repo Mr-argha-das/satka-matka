@@ -15,9 +15,13 @@ from typing import Optional
 
 class MarketInput(BaseModel):
     name: str
+    hindi: str
     open_time: str
     close_time: str
+    is_active : bool = True
+    status : bool = True
     marketType: str 
+
 class RateChartInput(BaseModel):
     single_digit_1: Optional[int] = None
     jodi_digit_1: Optional[int] = None
@@ -70,20 +74,26 @@ def create_or_update_rate_chart(data: RateChartInput,admin = Depends(require_adm
         "message": "Rate chart updated successfully",
         "data": json.loads(chart.to_json())
     }
+
+
 @router.post("/market/")
 def create_market(data: MarketInput,admin = Depends(require_admin)):
     try:
         market = Market(
             name=data.name,
+            hindi=data.hindi,
             open_time=data.open_time,
             close_time=data.close_time,
-            marketType=data.marketType
+            marketType=data.marketType,
+            is_active=data.is_active,
+            status=data.status
         )
         market.save()
         return {"message": "Market created successfully", "id": str(market.id)}
     
     except NotUniqueError:
         raise HTTPException(status_code=400, detail="Market already exists")
+    
 @router.get("/market/")
 def get_markets(admin = Depends(require_admin)):
     markets = Market.objects()
@@ -91,6 +101,7 @@ def get_markets(admin = Depends(require_admin)):
         "message": "Markets fetched successfully",
         "data" : json.loads(markets.to_json())
     }
+
 @router.get("/market/{market_id}")
 def get_market(market_id: str,admin = Depends(require_admin)):
     market = Market.objects(id=market_id).first()
@@ -100,6 +111,7 @@ def get_market(market_id: str,admin = Depends(require_admin)):
         "message": "Market fetched successfully",
         "data": json.loads(market.to_json())
     }
+
 @router.put("/market/{market_id}")
 def update_market(market_id: str, data: MarketInput,admin = Depends(require_admin)):
     market = Market.objects(id=market_id).first()
@@ -107,9 +119,12 @@ def update_market(market_id: str, data: MarketInput,admin = Depends(require_admi
         raise HTTPException(status_code=404, detail="Market not found")
 
     market.name = data.name
+    market.hindi = data.hindi
     market.open_time = data.open_time
     market.close_time = data.close_time
     market.marketType = data.marketType
+    market.is_active = data.is_active
+    market.status = data.status
 
     try:
         market.save()
@@ -117,6 +132,7 @@ def update_market(market_id: str, data: MarketInput,admin = Depends(require_admi
         raise HTTPException(status_code=400, detail="Market name already exists")
 
     return {"message": "Market updated successfully"}
+
 @router.patch("/market/{market_id}/status")
 def update_market_status(market_id: str, status: bool,admin = Depends(require_admin)):
     market = Market.objects(id=market_id).first()
@@ -127,6 +143,7 @@ def update_market_status(market_id: str, status: bool,admin = Depends(require_ad
     market.save()
 
     return {"message": "Market status updated", "status": status}
+
 @router.delete("/market/{market_id}")
 def delete_market(market_id: str,admin = Depends(require_admin)):
     market = Market.objects(id=market_id).first()

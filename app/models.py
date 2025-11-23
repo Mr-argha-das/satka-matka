@@ -58,6 +58,8 @@ class Withdrawal(Document):
 
 class Market(Document):
     name = StringField(required=True, unique=True)
+    hindi = StringField()
+
     open_time = StringField(required=True)
     close_time = StringField(required=True)
     marketType = StringField(required=True,choices=["Market", "Starline"])  # Regular / Starline / Jackpot
