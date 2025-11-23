@@ -3,7 +3,7 @@ from app.models import Market, RateChart
 
 from fastapi import APIRouter, UploadFile, File, Depends, HTTPException, Form
 from fastapi.responses import FileResponse
-from datetime import datetime
+from datetime import datetime, time
 import os
 import uuid
 from mongoengine.errors import NotUniqueError
@@ -97,7 +97,6 @@ def create_market(data: MarketInput,admin = Depends(require_admin)):
         raise HTTPException(status_code=400, detail="Market already exists")
     
 
-from datetime import datetime
 
 def compute_status(open_time: str, close_time: str):
     """Return True if current time is between open_time and close_time."""
@@ -126,9 +125,9 @@ def get_markets(admin=Depends(require_admin)):
     final_markets = []
     
     # TODAY DATE RANGE (12:00 AM – 11:59 PM)
-    today = datetime.datetime.utcnow().date()
-    start = datetime.datetime.combine(today, datetime.time.min)
-    end = datetime.datetime.combine(today, datetime.time.max)
+    today = datetime.utcnow().date()
+    start = datetime.combine(today, time.min)
+    end = datetime.combine(today, time.max)
 
     for m in markets:
         data = json.loads(m.to_json())
@@ -144,10 +143,9 @@ def get_markets(admin=Depends(require_admin)):
             date__lte=end
         ).first()
 
-        if todays_result:
-            data["today_result"] = json.loads(todays_result.to_json())
-        else:
-            data["today_result"] = None
+        data["today_result"] = (
+            json.loads(todays_result.to_json()) if todays_result else None
+        )
 
         final_markets.append(data)
 
@@ -155,7 +153,6 @@ def get_markets(admin=Depends(require_admin)):
         "message": "Markets fetched successfully",
         "data": final_markets
     }
-
 
 @router.get("/market/{market_id}")
 def get_market(market_id: str, admin=Depends(require_admin)):
@@ -169,11 +166,10 @@ def get_market(market_id: str, admin=Depends(require_admin)):
     data["status"] = compute_status(market.open_time, market.close_time)
 
     # TODAY DATE RANGE
-    today = datetime.datetime.utcnow().date()
-    start = datetime.datetime.combine(today, datetime.time.min)
-    end = datetime.datetime.combine(today, datetime.time.max)
+    today = datetime.utcnow().date()
+    start = datetime.combine(today, time.min)
+    end = datetime.combine(today, time.max)
 
-    # ---- GET TODAY'S RESULT FOR THIS MARKET ----
     todays_result = Result.objects(
         market_id=str(market.id),
         date__gte=start,
