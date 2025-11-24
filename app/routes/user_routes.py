@@ -5,7 +5,7 @@ from datetime import datetime
 import uuid
 from ..models import Wallet, Transaction, User
 from ..auth import get_current_user, require_admin
-
+from bson import ObjectId
 router = APIRouter(prefix="/user")
 
 
@@ -221,3 +221,22 @@ def all_users():
         "role": u.role,
         "created_at": u.created_at
     } for u in users]
+
+@router.get("/{user_id}", dependencies=[Depends(require_admin)])
+def user_by_id(user_id: str):
+    # Validate ObjectId
+    if not ObjectId.is_valid(user_id):
+        raise HTTPException(400, "Invalid user ID")
+
+    user = User.objects(id=user_id).first()
+
+    if not user:
+        raise HTTPException(404, "User not found")
+
+    return {
+        "user_id": str(user.id),
+        "username": user.username,
+        "mobile": user.mobile,
+        "role": user.role,
+        "created_at": user.created_at
+    }

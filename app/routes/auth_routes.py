@@ -72,3 +72,23 @@ def login(payload: LoginSchema):
     user.update(last_login=datetime.utcnow())
 
     return Token(access_token=token)
+
+
+# @router.post("/token")
+# def login(payload: LoginSchema):
+#     user = User.objects(mobile=payload.mobile).first()
+#     if not user:
+#         raise HTTPException(status_code=401, detail="Incorrect mobile or password")
+#     if not verify_password(payload.password, user.password_hash):
+#         raise HTTPException(status_code=401, detail="Incorrect mobile or password")
+
+#     token = create_access_token({"user_id": str(user.id)})
+#     user.update(last_login=datetime.utcnow())
+
+#     return {
+#         "message": "Login",
+#         "status": 200,
+#         "user": user,
+#         "access_token": token,
+#         "token_type": "bearer"
+#     }

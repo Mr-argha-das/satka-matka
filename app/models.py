@@ -20,10 +20,13 @@ class User(Document):
     is_bet = BooleanField(default=True)
     status = BooleanField(default=True)
     last_login = DateTimeField(default=datetime.datetime.utcnow)
-
+    
     # Referral
-    referral_code = StringField(default=lambda: str(uuid.uuid4())[:8], unique=True)
-    referred_by = StringField()   # store referral_code of inviter
+    referral_code = StringField(
+       default=lambda: str(uuid.uuid4())[:8],
+       unique=True,
+       sparse=True  ) 
+    referred_by = StringField()   
  # Active / Inactive
 
 
