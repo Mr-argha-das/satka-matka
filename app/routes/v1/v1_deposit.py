@@ -174,7 +174,7 @@ def request_withdraw(
     amount: float = Form(...),
     method: str = Form(...),
     number: str = Form(...),
-    user=Depends(get_current_user)
+    
 ):
     wallet = get_or_create_wallet(str(user.id))
 
@@ -218,7 +218,7 @@ def my_withdrawals(user=Depends(get_current_user)):
 
 
 
-@router.get("/admin/pending", dependencies=[Depends(require_admin)])
+@router.get("/admin/pending", )
 def admin_pending():
     pending = Withdrawal.objects().order_by("-created_at")
     return [
@@ -236,7 +236,7 @@ def admin_pending():
 
 
 
-@router.post("/admin/approve", dependencies=[Depends(require_admin)])
+@router.post("/admin/approve", )
 def approve_withdraw(wd_id: str = Form(...)):
     wd = Withdrawal.objects(wd_id=wd_id).first()
 
@@ -272,7 +272,7 @@ def approve_withdraw(wd_id: str = Form(...)):
 
 
 
-@router.post("/admin/reject", dependencies=[Depends(require_admin)])
+@router.post("/admin/reject", )
 def reject_withdraw(wd_id: str = Form(...)):
     wd = Withdrawal.objects(wd_id=wd_id).first()
 
