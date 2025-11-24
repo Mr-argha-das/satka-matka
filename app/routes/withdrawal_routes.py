@@ -15,8 +15,6 @@ def get_or_create_wallet(user_id: str):
         wallet.save()
     return wallet
 
-
-
 @router.post("/request")
 def request_withdraw(
     amount: float = Form(...),
@@ -44,8 +42,6 @@ def request_withdraw(
         "withdrawal_id": wd.wd_id,
         "status": wd.status
     }
-
-
 
 
 @router.get("/my")

@@ -12,7 +12,7 @@ class MarketGod(Document):
 
     open_time = StringField(required=True)
     close_time = StringField(required=True)
-    marketType = StringField(required=True, default="Golidesawar")  # Regular / Starline / Jackpot
+    marketType = StringField(required=True)  # Regular / Starline / Jackpot
     
     is_active = BooleanField(default=True)
     status = BooleanField(default=True) 
@@ -21,7 +21,7 @@ class BidGod(Document):
     user_id = StringField(required=True)
     market_id = StringField(required=True)
 
-    game_type = StringField(required=True , default="Golidesawar")  # single, jodi, sp, dp, tp, panna, sangam
+    game_type = StringField(required=True )  # single, jodi, sp, dp, tp, panna, sangam
     session = StringField(required=True) 
     
     open_digit = StringField(required=True)

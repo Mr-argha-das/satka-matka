@@ -35,7 +35,7 @@ class Transaction(Document):
     user_id = StringField(required=True)
     amount = FloatField(required=True)
     payment_method = StringField(required=True)
-    status = StringField(default="PENDING")  # PENDING, SUCCESS, FAILED
+    status = StringField(default="pending")  # PENDING, SUCCESS, FAILED
     created_at = DateTimeField(default=datetime.datetime.utcnow)
     confirmed_at = DateTimeField()
     screenshot = StringField()
@@ -51,10 +51,21 @@ class Withdrawal(Document):
     amount = FloatField(required=True)
     method = StringField(required=True)  # Paytm / PhonePe / GooglePay
     number = StringField(required=True)
-
-    status = StringField(default="PENDING")  # PENDING / SUCCESS / FAILED
+    status = StringField(default="pending")  
     created_at = DateTimeField(default=datetime.datetime.utcnow)
     confirmed_at = DateTimeField()
+
+class DepositQR(Document):
+    user_id = StringField(required=True)
+    image_url = StringField(required=True)
+    trnx_id = StringField(required=False)
+    status = StringField(default="pending")  
+    amount = FloatField(default=0)
+    method = StringField()
+    created_at = DateTimeField(default=datetime.datetime.utcnow)
+    updated_at = DateTimeField(default=datetime.datetime.utcnow)
+
+
 
 class Market(Document):
     name = StringField(required=True, unique=True)
@@ -76,7 +87,6 @@ class Bid(Document):
 
     digit = StringField(required=True)
     points = IntField(required=True)
-
     created_at = DateTimeField(default=datetime.datetime.utcnow)
 
 
@@ -89,15 +99,6 @@ class Result(Document):
     close_digit = StringField()
     
 
-
-class DepositQR(Document):
-    user_id = StringField(required=True)
-    image_url = StringField(required=True)
-    trnx_id = StringField(required=False)
-    status = StringField(default="PENDING")  # PENDING, SUCCESS, FAILED
-    amount = FloatField(default=0)
-    created_at = DateTimeField(default=datetime.datetime.utcnow)
-    updated_at = DateTimeField(default=datetime.datetime.utcnow)
 
 
 class StarlineSlot(Document):
