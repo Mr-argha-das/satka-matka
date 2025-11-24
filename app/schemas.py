@@ -8,6 +8,7 @@ class UserCreate(BaseModel):
     mobile: str
     role: str
     password: str
+    referral_code : str
 
 class LoginSchema(BaseModel):
     mobile: str
