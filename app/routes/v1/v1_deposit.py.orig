@@ -263,6 +263,10 @@ def my_withdrawals(user=Depends(get_current_user)):
     ]
 
 
+
+@router.get("/admin/withdrawls", )
+def admin_pending():
+
 # =====================================================================
 # 9️⃣ ADMIN: View Withdrawal Requests
 # =====================================================================
