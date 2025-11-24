@@ -1,5 +1,5 @@
 import uuid
-from app.auth import require_admin
+from app.auth import get_current_user, require_admin
 from app.models import Bid, Market, RateChart, Result, Transaction, Wallet
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
@@ -255,3 +255,106 @@ def delete_result(result_id: str, admin=Depends(require_admin)):
 
     r.delete()
     return {"message": "Result deleted"}
+
+
+@router.get("/win-history")
+def win_history(user=Depends(get_current_user)):
+
+    # Load rate chart
+    chart = RateChart.objects().first()
+    if not chart:
+        raise HTTPException(500, "Rate chart not found")
+
+    RATE_MAP = {
+        "single": chart.single_digit_2,
+        "jodi": chart.jodi_digit_2,
+        "single_panna": chart.single_pana_2,
+        "double_panna": chart.double_pana_2,
+        "triple_panna": chart.tripple_pana_2,
+        "half_sangam": chart.half_sangam_2,
+        "full_sangam": chart.full_sangam_2,
+    }
+
+    bids = Bid.objects(user_id=str(user.id))
+    win_data = []
+
+    for bid in bids:
+
+        # Find market
+        market = Market.objects(id=bid.market_id).first()
+        if not market:
+            continue
+
+        # Find declared result for that market+date
+        result = Result.objects(market_id=bid.market_id, date=bid.date).first()
+        if not result:
+            continue
+
+        win = False
+
+        # Winning Logic (same as your settlement logic)
+        if bid.game_type == "single" and bid.digit == result.open_digit:
+            win = True
+
+        if bid.game_type == "jodi" and bid.digit == result.open_digit + result.close_digit:
+            win = True
+
+        if bid.game_type == "single_panna" and bid.digit == result.open_panna:
+            win = True
+
+        if bid.game_type == "double_panna" and bid.digit == result.close_panna:
+            win = True
+
+        if bid.game_type == "triple_panna":
+            if bid.session == "open" and bid.digit == result.open_panna:
+                win = True
+            if bid.session == "close" and bid.digit == result.close_panna:
+                win = True
+
+        if bid.game_type == "half_sangam":
+            panna, digitx = bid.digit.split("-")
+            if panna == result.open_panna and digitx == result.close_digit:
+                win = True
+            if panna == result.close_panna and digitx == result.open_digit:
+                win = True
+
+        if bid.game_type == "full_sangam":
+            op, cp = bid.digit.split("-")
+            if op == result.open_panna and cp == result.close_panna:
+                win = True
+
+        # If not win → skip
+        if not win:
+            continue
+
+        # Calculate winning amount
+        rate = RATE_MAP.get(bid.game_type, 0)
+        win_amount = bid.points * rate
+
+        # Fetch transaction (optional)
+        tx = Transaction.objects(user_id=str(user.id), amount=win_amount).order_by('-id').first()
+
+        win_data.append({
+            "game_name": market.name,
+            "game_type": bid.game_type,
+            "points": bid.points,
+            "digit_or_panna": bid.digit,
+            "win_amount": win_amount,
+            "date": bid.date,
+            "session": bid.session,
+            "declared_result": {
+                "open_digit": result.open_digit,
+                "open_panna": result.open_panna,
+                "close_digit": result.close_digit,
+                "close_panna": result.close_panna
+            },
+            "declared_time": {
+                "open_declared_at": getattr(result, "open_declared_at", None),
+                "close_declared_at": getattr(result, "close_declared_at", None),
+            },
+            "tx_id": tx.tx_id if tx else None
+        })
+
+    return {"wins": win_data}
+
+

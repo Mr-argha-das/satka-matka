@@ -1,10 +1,10 @@
 import json
 from app.utils import hash_password, verify_password
-from ...models import User, Transaction,Withdrawal,Bid
+from ...models import Market, RateChart, Result, User, Transaction,Withdrawal,Bid
 from datetime import datetime
 from fastapi import APIRouter, HTTPException, Depends,Form
 from pydantic import BaseModel
-from ...auth import require_admin
+from ...auth import get_current_user, require_admin
 router = APIRouter(prefix="/api/v1/admin", tags=["Admin user management"])
 
 @router.get("/users")
@@ -166,3 +166,126 @@ def today_created_users(admin_user = Depends(require_admin)):
         "count": len(users),
         "users": json.loads(users.to_json())
     }
+
+@router.get("/user/win-history")
+def win_history(
+    from_date: str,
+    to_date: str,
+    user=Depends(get_current_user)
+):
+
+    # Date conversion
+    try:
+        start = datetime.datetime.strptime(from_date, "%Y-%m-%d").date()
+        end = datetime.datetime.strptime(to_date, "%Y-%m-%d").date()
+    except:
+        raise HTTPException(400, "Date must be in YYYY-MM-DD format")
+
+    # Load rate chart
+    chart = RateChart.objects().first()
+    if not chart:
+        raise HTTPException(500, "Rate chart not found")
+
+    RATE_MAP = {
+        "single": chart.single_digit_2,
+        "jodi": chart.jodi_digit_2,
+        "single_panna": chart.single_pana_2,
+        "double_panna": chart.double_pana_2,
+        "triple_panna": chart.tripple_pana_2,
+        "half_sangam": chart.half_sangam_2,
+        "full_sangam": chart.full_sangam_2,
+    }
+
+    # Fetch only bids in date range
+    bids = Bid.objects(
+        user_id=str(user.id),
+        date__gte=from_date,
+        date__lte=to_date
+    )
+
+    win_data = []
+
+    for bid in bids:
+
+        # Find market
+        market = Market.objects(id=bid.market_id).first()
+        if not market:
+            continue
+
+        # Find result for that bid date
+        result = Result.objects(
+            market_id=bid.market_id,
+            date=bid.date
+        ).first()
+        if not result:
+            continue
+
+        win = False
+
+        # WIN LOGIC
+        if bid.game_type == "single" and bid.digit == result.open_digit:
+            win = True
+
+        if bid.game_type == "jodi" and bid.ddigit == result.open_digit + result.close_digit:
+            win = True
+
+        if bid.game_type == "single_panna" and bid.digit == result.open_panna:
+            win = True
+
+        if bid.game_type == "double_panna" and bid.digit == result.close_panna:
+            win = True
+
+        if bid.game_type == "triple_panna":
+            if bid.session == "open" and bid.digit == result.open_panna:
+                win = True
+            if bid.session == "close" and bid.digit == result.close_panna:
+                win = True
+
+        if bid.game_type == "half_sangam":
+            panna, digitx = bid.digit.split("-")
+            if panna == result.open_panna and digitx == result.close_digit:
+                win = True
+            if panna == result.close_panna and digitx == result.open_digit:
+                win = True
+
+        if bid.game_type == "full_sangam":
+            op, cp = bid.digit.split("-")
+            if op == result.open_panna and cp == result.close_panna:
+                win = True
+
+        # skip if not win
+        if not win:
+            continue
+
+        # Calculate win amount
+        rate = RATE_MAP.get(bid.game_type, 0)
+        win_amount = bid.points * rate
+
+        # Transaction match (optional)
+        tx = Transaction.objects(
+            user_id=str(user.id),
+            amount=win_amount
+        ).order_by("-id").first()
+
+        win_data.append({
+            "game_name": market.name,
+            "game_type": bid.game_type,
+            "digit_or_panna": bid.digit,
+            "points": bid.points,
+            "win_amount": win_amount,
+            "date": bid.date,
+            "session": bid.session,
+            "declared_result": {
+                "open_digit": result.open_digit,
+                "open_panna": result.open_panna,
+                "close_digit": result.close_digit,
+                "close_panna": result.close_panna
+            },
+            "declared_time": {
+                "open_declared_at": getattr(result, "open_declared_at", None),
+                "close_declared_at": getattr(result, "close_declared_at", None),
+            },
+            "tx_id": tx.tx_id if tx else None
+        })
+
+    return {"wins": win_data}
