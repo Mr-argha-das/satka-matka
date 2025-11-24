@@ -12,7 +12,8 @@ app = FastAPI(title="Matka Satka Backend")
 origins = [
     "http://localhost:5173",  
     "http://127.0.0.1:5173",
-    "https://kalyanratan777.com",  # <-- apna domain add karna
+    "https://kalyanratan777.com",
+    "https://game.kalyanratan777.com"  # <-- apna domain add karna
 ]
 
 app.add_middleware(
