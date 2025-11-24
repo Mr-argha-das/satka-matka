@@ -61,9 +61,11 @@ def get_rate_chart():
     chart = RateChart.objects().first()
     if not chart:
         return {"message": "No rate chart found"}
-    return chart.to_mongo().to_dict()
 
-@router.post("/rate/")
+    # FIX: Convert to JSON safe dict
+    return json.loads(chart.to_json())
+
+@router.post("/rate")
 def create_or_update_rate_chart(data: RateChartInput,admin = Depends(require_admin)):
     chart = RateChart.objects().first()
     if not chart:

@@ -42,6 +42,11 @@ class RateChartGodInput(BaseModel):
     single_digit_2: Optional[int] = None
     jodi_digit_2: Optional[int] = None
 
+class UserBidModel(BaseModel):
+    market_id: str
+    game_type: str         
+    digit: str
+    points: int
 
 # -----------------------------
 # RATE CHART ROUTES
@@ -482,3 +487,237 @@ def winning_report(
     return {"count": len(reports), "data": reports}
 
 
+@router.get("/win-history", )
+def get_win_history(user=Depends(get_current_user)):
+    """
+    Returns all WINNING bids of the logged-in user.
+    """
+
+    chart = RateChartGod.objects().first()
+    if not chart:
+        raise HTTPException(400, "Rate chart missing")
+
+    # Fetch ALL results
+    results = ResultGod.objects()
+
+    win_list = []
+
+    for r in results:
+        # find all bids in that market for that date (full day range)
+        start = datetime.combine(r.date.date(), datetime.min.time())
+        end = datetime.combine(r.date.date(), datetime.max.time())
+
+        user_bids = BidGod.objects(
+            user_id=str(user.id),
+            market_id=r.market_id,
+            created_at__gte=start,
+            created_at__lte=end
+        )
+
+        for bid in user_bids:
+            win = False
+
+            # SINGLE WIN
+            if bid.game_type == "single":
+                if bid.session == "open" and bid.open_digit == r.open_digit:
+                    win = True
+                if bid.session == "close" and bid.close_digit == r.close_digit:
+                    win = True
+
+            # JODI WIN
+            if bid.game_type == "jodi":
+                if bid.open_digit + bid.close_digit == r.open_digit + r.close_digit:
+                    win = True
+
+            if win:
+                # Calculate winning amount
+                rate = (
+                    chart.jodi_digit_2 
+                    if bid.game_type == "jodi" 
+                    else chart.single_digit_2
+                )
+                win_amount = bid.points * rate
+
+                # Fetch market name
+                market = MarketGod.objects(id=r.market_id).first()
+                market_name = market.name if market else "-"
+
+                win_list.append({
+                    "market_id": r.market_id,
+                    "market_name": market_name,
+                    "date": r.date,
+                    "game_type": bid.game_type,
+                    "session": bid.session,
+                    "open_digit": bid.open_digit,
+                    "close_digit": bid.close_digit,
+                    "points": bid.points,
+                    "win_amount": win_amount,
+                    "result_open": r.open_digit,
+                    "result_close": r.close_digit,
+                })
+
+    # Sort latest first
+    win_list.sort(key=lambda x: x["date"], reverse=True)
+
+    return {
+        "message": "Winning history fetched",
+        "count": len(win_list),
+        "data": win_list
+    }
+
+
+class UserBidRequest(BaseModel):
+    market_id: str
+    game_type: str      # "open", "close", "jodi"
+    digit: str
+    points: int
+
+@router.post("/bid",)
+def place_user_bid(payload: UserBidRequest, user=Depends(get_current_user)):
+
+    # Validate points
+    if payload.points <= 0:
+        raise HTTPException(400, "Points must be greater than 0")
+
+    digit = payload.digit.strip()
+
+    # Game validations
+    if payload.game_type == "open":
+        if len(digit) != 1:
+            raise HTTPException(400, "Open digit must be 1 digit")
+
+    elif payload.game_type == "close":
+        if len(digit) != 1:
+            raise HTTPException(400, "Close digit must be 1 digit")
+
+    elif payload.game_type == "jodi":
+        if len(digit) != 2:
+            raise HTTPException(400, "Jodi must be 2 digits")
+
+    else:
+        raise HTTPException(400, "Invalid game type")
+
+    # Check wallet
+    wallet = Wallet.objects(user_id=str(user.id)).first()
+    if not wallet:
+        raise HTTPException(404, "Wallet not found")
+
+    if wallet.balance < payload.points:
+        raise HTTPException(400, "Insufficient wallet balance")
+
+    # ❌ REMOVE same-day restriction
+    # User can place unlimited bids in same market
+
+    # Deduct wallet balance
+    wallet.update(dec__balance=payload.points)
+
+    # Prepare bid fields
+    if payload.game_type == "open":
+        session = "open"
+        open_digit = digit
+        close_digit = "-"
+
+    elif payload.game_type == "close":
+        session = "close"
+        open_digit = "-"
+        close_digit = digit
+
+    else:  # jodi
+        session = "close"
+        open_digit = digit[0]
+        close_digit = digit[1]
+
+    # Save the bid
+    bid = BidGod(
+        user_id=str(user.id),
+        market_id=payload.market_id,
+        game_type="jodi" if payload.game_type == "jodi" else "single",
+        session=session,
+        open_digit=open_digit,
+        close_digit=close_digit,
+        points=payload.points
+    )
+    bid.save()
+
+    return {
+        "message": "Bid placed successfully",
+        "data": {
+            "open_digit": open_digit,
+            "close_digit": close_digit,
+            "session": session,
+            "points": payload.points
+        }
+    }
+
+
+
+
+
+
+
+@router.get("/bids", tags=["Golidesawar User"])
+def get_user_bids(
+    market_id: str,
+    date: str = Query(...),
+    user=Depends(get_current_user)
+):
+    """
+    Return today's bids for logged-in user (1 bid per day rule)
+    """
+
+    # Convert date to full datetime range
+    try:
+        start = datetime.strptime(date + " 00:00:00", "%Y-%m-%d %H:%M:%S")
+        end = datetime.strptime(date + " 23:59:59", "%Y-%m-%d %H:%M:%S")
+    except:
+        raise HTTPException(400, "Invalid date format. Use YYYY-MM-DD")
+
+    bids = BidGod.objects(
+        user_id=str(user.id),
+        market_id=market_id,
+        created_at__gte=start,
+        created_at__lte=end
+    )
+
+    result = []
+    for b in bids:
+        result.append({
+            "id": str(b.id),
+            "market_id": b.market_id,
+            "game_type": b.game_type,
+            "session": b.session,
+            "open_digit": b.open_digit,
+            "close_digit": b.close_digit,
+            "points": b.points,
+            "created_at": b.created_at,
+        })
+
+    return {"message": "User bids fetched", "data": result}
+
+
+@router.get("/bids/all", tags=["Golidesawar User"])
+def get_all_user_bids(user=Depends(get_current_user)):
+    """
+    Return ALL bids made by this user across ALL markets.
+    Sorted by latest first.
+    """
+    bids = BidGod.objects(user_id=str(user.id)).order_by("-created_at")
+
+    output = []
+    for b in bids:
+        output.append({
+            "id": str(b.id),
+            "market_id": b.market_id,
+            "game_type": b.game_type,
+            "session": b.session,
+            "open_digit": b.open_digit,
+            "close_digit": b.close_digit,
+            "points": b.points,
+            "created_at": b.created_at,
+        })
+
+    return {
+        "message": "All user bids fetched",
+        "count": len(output),
+        "data": output
+    }

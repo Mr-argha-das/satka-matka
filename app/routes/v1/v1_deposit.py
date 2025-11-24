@@ -13,9 +13,17 @@ UPLOAD_DIR = "uploads/deposit_qr"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 @router.post("/upload")
-async def upload_qr(trnx: str = None , image: UploadFile = File(...), user=Depends(get_current_user)):
+async def upload_qr(
+    trnx: str = None,
+    amount: float = Form(None),
+    method: str = Form(None),
+    image: UploadFile = File(...),
+    user = Depends(get_current_user)
+):
+    print(amount)
+    print(method)
 
-    # only img allowed
+    # Validate image
     if not image.filename.lower().endswith((".png", ".jpg", ".jpeg")):
         raise HTTPException(400, "Only PNG/JPG images allowed")
 
@@ -27,22 +35,26 @@ async def upload_qr(trnx: str = None , image: UploadFile = File(...), user=Depen
     with open(file_path, "wb") as f:
         f.write(await image.read())
 
-    # 🔥 Always create a NEW QR request entry
+    # Create new deposit request
     qr = DepositQR(
-        trnx_id= trnx,
-        user_id=str(user.id),
-        image_url=file_path,
-        status="PENDING",
-        created_at=datetime.utcnow(),
-        updated_at=datetime.utcnow()
-    ).save()
+        trnx_id = trnx,
+        amount = amount,
+        method = method,
+        user_id = str(user.id),
+        image_url = file_path,
+        status = "PENDING",      # FIX: Status always uppercase (same as DB)
+        created_at = datetime.utcnow(),
+        updated_at = datetime.utcnow()
+    )
+    qr.save()
 
     return {
         "message": "QR uploaded successfully",
         "image_url": file_path,
+        "amount" : amount,
+        "method" : method,
         "id": str(qr.id)
     }
-
 
 @router.get("/image/{user_id}")
 def get_qr_image(user_id: str):
@@ -57,8 +69,10 @@ def get_qr_image(user_id: str):
 # -------------------------------------------------------
 # 3️⃣ ADMIN: Get ALL Pending Requests (with username)
 # -------------------------------------------------------
-@router.get("/pending", dependencies=[Depends(require_admin)])
-def get_pending_list():
+
+
+@router.get("/admin/deposite/pending", dependencies=[Depends(require_admin)])
+def get_pending_deposite_list():
 
     pending = DepositQR.objects().order_by("-created_at")
     data = []
@@ -68,16 +82,18 @@ def get_pending_list():
         data.append({
             "id": str(p.id),
             "user_id": p.user_id,
+            "method" : p.method,
+            "status" :p.status,
             "username": user.username if user else "Unknown",
             "image_url": p.image_url,
             "uploaded_at": p.created_at,
-            "trxn_id": p.trnx_id
+            "trxn_id": p.trnx_id,
+            "amount" : p.amount
         })
 
     return {"count": len(data), "pending": data}
 
-
-@router.post("/approve", dependencies=[Depends(require_admin)])
+@router.post("/admin/deposite/approve", dependencies=[Depends(require_admin)])
 def approve_deposit(
     request_id: str = Form(...),
     amount: float = Form(...)
@@ -108,20 +124,24 @@ def approve_deposit(
 
     return {"message": "Deposit Approved", "amount_added": amount}
 
-# -------------------------------------------------------
-# 5️⃣ ADMIN: Reject Deposit
-# -------------------------------------------------------
-@router.post("/reject", dependencies=[Depends(require_admin)])
+
+@router.post("/admin/deposite/reject", dependencies=[Depends(require_admin)])
 def reject_deposit(request_id: str = Form(...)):
 
     qr = DepositQR.objects(id=request_id).first()
     if not qr:
         raise HTTPException(404, "Request not found")
 
+    if qr.status != "PENDING":
+        raise HTTPException(400, "Already processed")
+
+    # Update status to FAILED
     qr.status = "FAILED"
     qr.updated_at = datetime.utcnow()
     qr.save()
-    tx = Transaction(
+
+    # Create transaction record (amount = 0)
+    Transaction(
         tx_id=str(uuid.uuid4()),
         user_id=str(qr.user_id),
         amount=0,
@@ -129,7 +149,41 @@ def reject_deposit(request_id: str = Form(...)):
         status="Rejected"
     ).save()
 
-    return {"message": "Deposit request rejected"}
+    return {"message": "Deposit Rejected Successfully"}
+
+
+
+# ============================================================================================================================================================================
+
+
+# -------------------------------------------------------
+# 5️⃣ ADMIN: Reject Deposit
+# -------------------------------------------------------
+@router.post("/admin/reject", dependencies=[Depends(require_admin)])
+def reject_withdraw(wd_id: str = Form(...)):
+    wd = Withdrawal.objects(wd_id=wd_id).first()
+
+    if not wd:
+        raise HTTPException(404, "Withdrawal not found")
+
+    if wd.status != "PENDING":
+        return {"message": "Already processed"}
+
+    # Mark as failed
+    wd.status = "FAILED"
+    wd.confirmed_at = datetime.utcnow()
+    wd.save()
+
+    # Create a transaction with ZERO amount
+    Transaction(
+        tx_id=str(uuid.uuid4()),
+        user_id=str(wd.user_id),
+        amount=0,   # ✅ Correct – no deduction on rejection
+        payment_method="Withdrawal",
+        status="Rejected"
+    ).save()
+
+    return {"message": "Withdrawal Rejected"}
 
 
 @router.get("/history")
@@ -198,8 +252,6 @@ def request_withdraw(
     }
 
 
-
-
 @router.get("/my")
 def my_withdrawals(user=Depends(get_current_user)):
     data = Withdrawal.objects(user_id=str(user.id)).order_by("-created_at")
@@ -218,7 +270,7 @@ def my_withdrawals(user=Depends(get_current_user)):
 
 
 
-@router.get("/admin/pending", dependencies=[Depends(require_admin)])
+@router.get("/admin/withdrawls", )
 def admin_pending():
     pending = Withdrawal.objects().order_by("-created_at")
     return [
@@ -228,15 +280,14 @@ def admin_pending():
             "amount": w.amount,
             "method": w.method,
             "number": w.number,
+            "status": w.status,
             "created_at": w.created_at
         }
         for w in pending
     ]
 
 
-
-
-@router.post("/admin/approve", dependencies=[Depends(require_admin)])
+@router.post("/admin/approve", )
 def approve_withdraw(wd_id: str = Form(...)):
     wd = Withdrawal.objects(wd_id=wd_id).first()
 
@@ -251,15 +302,18 @@ def approve_withdraw(wd_id: str = Form(...)):
     if wallet.balance < wd.amount:
         raise HTTPException(400, "User wallet balance insufficient")
 
-    # Deduct Money
+    # Deduct amount from wallet
     wallet.balance -= wd.amount
     wallet.updated_at = datetime.utcnow()
     wallet.save()
 
+    # Update withdrawal status
     wd.status = "SUCCESS"
     wd.confirmed_at = datetime.utcnow()
     wd.save()
-    tx = Transaction(
+
+    # Transaction record
+    Transaction(
         tx_id=str(uuid.uuid4()),
         user_id=str(wd.user_id),
         amount=-wd.amount,
@@ -271,23 +325,28 @@ def approve_withdraw(wd_id: str = Form(...)):
 
 
 
-
-@router.post("/admin/reject", dependencies=[Depends(require_admin)])
+@router.post("/admin/reject" )
 def reject_withdraw(wd_id: str = Form(...)):
     wd = Withdrawal.objects(wd_id=wd_id).first()
 
     if not wd:
         raise HTTPException(404, "Withdrawal not found")
 
+    if wd.status != "PENDING":
+        return {"message": "Already processed"}
+
+    # Mark as failed
     wd.status = "FAILED"
     wd.confirmed_at = datetime.utcnow()
     wd.save()
-    tx = Transaction(
+
+    # Transaction record (NO deduction)
+    Transaction(
         tx_id=str(uuid.uuid4()),
         user_id=str(wd.user_id),
-        amount=-wd.amount,
+        amount=0,
         payment_method="Withdrawal",
         status="Rejected"
     ).save()
 
-    return {"message": "Withdrawal Rejected"}
+    return {"message": "Withdrawal Rejected Successfully"}

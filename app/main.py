@@ -38,6 +38,7 @@ app.include_router(market.router)
 app.include_router(images_routes.router)
 app.include_router(deposit_qr.router)
 app.include_router(passbook.router)
+
 app.include_router(how_to_play_routes.router) 
 app.include_router(site_data_routes.router) 
 app.include_router(main_settings_routes.router) 
