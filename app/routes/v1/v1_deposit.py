@@ -54,8 +54,8 @@ async def upload_qr(
         user_id=str(user.id),
         image_url=f"/uploads/deposit_qr/{filename}",
         status="PENDING",
-        created_at=datetime.utcnow(),
-        updated_at=datetime.utcnow()
+        created_at= datetime.datetime.utcnow(),
+        updated_at= datetime.datetime.utcnow()
     )
     qr.save()
 
@@ -128,13 +128,13 @@ def approve_deposit(request_id: str = Form(...), amount: float = Form(...)):
 
     # Deposit money
     wallet.balance += amount
-    wallet.updated_at = datetime.utcnow()
+    wallet.updated_at = datetime.datetime.utcnow()
     wallet.save()
 
     # Update QR request
     qr.status = "SUCCESS"
     qr.amount = amount
-    qr.updated_at = datetime.utcnow()
+    qr.updated_at = datetime.datetime.utcnow()
     qr.save()
 
     # Create transaction
@@ -163,7 +163,7 @@ def reject_deposit(request_id: str = Form(...)):
         raise HTTPException(400, "Already processed")
 
     qr.status = "FAILED"
-    qr.updated_at = datetime.utcnow()
+    qr.updated_at = datetime.datetime.utcnow()
     qr.save()
 
     Transaction(
@@ -337,95 +337,6 @@ def reject_withdrawal(wd_id: str = Form(...)):
     return {"message": "Withdrawal rejected"}
 
 
-# def get_withdrawal(wd_id: str):
-#     wd_id = wd_id.strip().replace('"', "").replace("'", "")
-
-#     wd = Withdrawal.objects(wd_id=wd_id).first()
-
-#     if not wd:
-#         try:
-#             wd = Withdrawal.objects(id=wd_id).first()
-#         except:
-#             pass
-
-#     if not wd:
-#         raise HTTPException(404, f"Withdrawal not found for id: {wd_id}")
-
-#     return wd     # <-- IMPORTANT: return model object, NOT dict
-
-    
-
-# @router.post("/admin/withdraw/approve")
-# def approve_withdrawal(
-#     wd_id: str = Form(...),
-#     admin=Depends(require_admin)
-# ):
-#     wd = get_withdrawal(wd_id)
-
-#     if wd.status != "PENDING":
-#         return {"message": "Already processed"}
-
-#     wallet = get_or_create_wallet(wd.user_id)
-
-#     if wallet.balance < wd.amount:
-#         raise HTTPException(400, "User balance insufficient")
-
-#     # Update wallet
-#     wallet.balance -= wd.amount
-#     wallet.updated_at = datetime.utcnow()
-#     wallet.save()
-
-#     # Update withdrawal
-#     wd.update(
-#         status="SUCCESS",
-#         confirmed_at=datetime.utcnow()
-#     )
-
-#     # Transaction record
-#     Transaction(
-#         tx_id=str(uuid.uuid4()),
-#         user_id=wd.user_id,
-#         amount=-wd.amount,
-#         payment_method="Withdrawal",
-#         status="SUCCESS",
-#         confirmed_at=datetime.utcnow()
-#     ).save()
-
-#     return {"message": "Withdrawal Approved", "new_balance": wallet.balance}
-
-
-# # ----------------------------------------------
-# # Reject Withdrawal
-# # ----------------------------------------------
-# @router.post("/admin/withdraw/reject")
-# def reject_withdrawal(
-#     wd_id: str = Form(...),
-#     # admin=Depends(require_admin) 
-# ):
-    
-#     print(wd_id)
-#     wd = get_withdrawal(wd_id)
-
-#     if wd.status != "PENDING":
-#         return {"message": "Already processed"}
-
-#     # Update withdrawal
-#     wd.update(
-#         status="FAILED",
-#         confirmed_at=datetime.utcnow()
-#     )
-
-#     # Log transaction (no deduction)
-#     Transaction(
-#         tx_id=str(uuid.uuid4()),
-#         user_id=wd.user_id,
-#         amount=0,
-#         payment_method="Withdrawal",
-#         status="FAILED",
-#         confirmed_at=datetime.utcnow()
-#     ).save()
-
-#     return {"message": "Withdrawal Rejected"}
 
 # # =====================================================================
 # # 🔟 ADMIN: Approve Withdrawal
@@ -447,11 +358,11 @@ def approve_withdraw(wd_id: str = Form(...)):
         raise HTTPException(400, "User balance insufficient")
 
     wallet.balance -= wd.amount
-    wallet.updated_at = datetime.utcnow()
+    wallet.updated_at = datetime.datetime.utcnow()
     wallet.save()
 
     wd.status = "SUCCESS"
-    wd.confirmed_at = datetime.utcnow()
+    wd.confirmed_at = datetime.datetime.utcnow()
     wd.save()
 
     Transaction(
