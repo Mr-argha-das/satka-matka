@@ -222,7 +222,7 @@ def all_users():
         "created_at": u.created_at
     } for u in users]
 
-@router.get("/{user_id}", dependencies=[Depends(require_admin)])
+@router.get("/{user_id}")
 def user_by_id(user_id: str):
     # Validate ObjectId
     if not ObjectId.is_valid(user_id):
@@ -230,8 +230,7 @@ def user_by_id(user_id: str):
 
     user = User.objects(id=user_id).first()
 
-    if not user:
-        raise HTTPException(404, "User not found")
+    
 
     return {
         "user_id": str(user.id),
