@@ -1,7 +1,7 @@
 import json
 from app.models import Market, RateChart
 
-from fastapi import APIRouter, UploadFile, File, Depends, HTTPException, Form
+from fastapi import APIRouter, Query, UploadFile, File, Depends, HTTPException, Form
 from fastapi.responses import FileResponse
 from datetime import datetime, time
 import os
@@ -304,3 +304,52 @@ def delete_market(market_id: str,admin = Depends(require_admin)):
 
 
 
+
+@router.get("/market-chart")
+def get_market_results(market_id: str = Query(None), ):
+    """
+    Return results in required simple format:
+    [
+        {
+            "market_id": "MK01",
+            "market_name": "Kalyan",
+            "date": "2025-02-10",
+            "open_panna": "234",
+            "open_digit": "2",
+            "close_panna": "680",
+            "close_digit": "7",
+            "status": "closed"
+        }
+    ]
+    """
+
+    def build_response(market, result):
+        return {
+            "market_id": str(market.id),
+            "market_name": market.name,
+            "date": result.date.strftime("%Y-%m-%d") if result else None,
+            "open_panna": result.open_panna if result else None,
+            "open_digit": result.open_digit if result else None,
+            "close_panna": result.close_panna if result else None,
+            "close_digit": result.close_digit if result else None,
+            "status": "closed" if result else "open",
+        }
+
+    # If a specific market_id is requested
+    if market_id:
+        market = Market.objects(id=market_id).first()
+        if not market:
+            raise HTTPException(status_code=404, detail="Market not found")
+
+        result = Result.objects(market_id=market_id).order_by("-date").first()
+        return [build_response(market, result)]
+
+    # Return ALL markets
+    all_markets = Market.objects()
+    final_output = []
+
+    for m in all_markets:
+        result = Result.objects(market_id=str(m.id)).order_by("-date").first()
+        final_output.append(build_response(m, result))
+
+    return final_output
