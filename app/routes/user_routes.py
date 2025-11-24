@@ -169,12 +169,7 @@ def winning_history(
 
 @router.get("/profile")
 def get_profile(user=Depends(get_current_user)):
-    return {
-        "username": user.username,
-        "mobile": user.mobile,
-        "created_at": user.created_at,
-        "role": user.role
-    }
+    return json.loads(user.to_json())
 
 @router.get('/me')
 def read_users_me(current_user: User = Depends(get_current_user)):
@@ -184,12 +179,7 @@ def read_users_me(current_user: User = Depends(get_current_user)):
 
 @router.get("/profile2")
 def get_profile2(user=Depends(get_current_user)):
-    return {
-        "username": user.username,
-        "mobile": user.mobile,
-        "created_at": user.created_at,
-        "role": user.role
-    }
+    return json.loads(user.to_json())
 
 
 @router.put("/profile")
