@@ -8,16 +8,23 @@ import uuid
 
 class User(Document):
     meta = {"collection": "users"}
+
     username = StringField(required=True)
     mobile = StringField(required=True, unique=True)
-   
     password_hash = StringField(required=True)
+
     role = StringField(choices=["player","admin"], default="player")
     balance = FloatField(default=5.0)
     created_at = DateTimeField(default=datetime.datetime.utcnow)
-    is_bet = BooleanField(default=True)  # Is allowed to place bets
+
+    is_bet = BooleanField(default=True)
     status = BooleanField(default=True)
-    last_login = DateTimeField(default=datetime.datetime.utcnow)  # Active / Inactive
+    last_login = DateTimeField(default=datetime.datetime.utcnow)
+
+    # Referral
+    referral_code = StringField(default=lambda: str(uuid.uuid4())[:8], unique=True)
+    referred_by = StringField()   # store referral_code of inviter
+ # Active / Inactive
 
 
 
@@ -144,7 +151,7 @@ class SiteSettings(Document):
     withdraw_open_time = StringField(default="")
     withdraw_close_time = StringField(default="")
     website_link = StringField(default="")
-
+    referral_bonus = FloatField(default=0)
     meta = {"collection": "site_settings"}
 
 
