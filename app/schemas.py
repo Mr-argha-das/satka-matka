@@ -6,7 +6,6 @@ import datetime
 class UserCreate(BaseModel):
     username: str
     mobile: str
-    role: str
     password: str
     referral_code : str | None = None
 
@@ -42,7 +41,6 @@ class UserOut(BaseModel):
     id: str
     username: str
     mobile: str
-    
     balance: float
     role: str
 

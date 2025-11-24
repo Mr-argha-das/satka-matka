@@ -4,6 +4,9 @@ from ..models import SiteSettings, User, Wallet
 from ..schemas import UserCreate, LoginSchema, Token, UserOut
 from ..utils import hash_password, verify_password, create_access_token
 
+import random
+import string
+
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 # @router.post("/register", response_model=UserOut)
@@ -61,6 +64,13 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 #         role=new_user.role
 #     )
 
+
+
+# ---- FUNCTION TO GENERATE UNIQUE REFERRAL CODE ----
+def generate_referral_code():
+    return ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
+
+
 @router.post("/register")
 def register(payload: UserCreate):
 
@@ -71,23 +81,27 @@ def register(payload: UserCreate):
     # 2. Hash password
     hashed = hash_password(payload.password)
 
-    # 3. Create new user
+    # 3. Generate referral code for the new user
+    referral_code = generate_referral_code()
+
+    # 4. Create new user
     new_user = User(
         username=payload.username,
         mobile=payload.mobile,
-        role=payload.role,
         password_hash=hashed,
+        referral_code=referral_code,      # <----- ADDED
         referred_by=payload.referral_code if payload.referral_code else None,
     ).save()
 
-    # 4. Create wallet
-    Wallet(user_id=str(new_user.id), balance=0).save()
+    # 5. Create wallet
+    Wallet(user_id=str(new_user.id), balance=5).save()
 
     # ---------------------------------------------------
     # REFERRAL BONUS LOGIC
     # ---------------------------------------------------
     if payload.referral_code:
 
+        # Find referring user
         referrer = User.objects(referral_code=payload.referral_code).first()
         if not referrer:
             raise HTTPException(400, "Invalid referral code")
@@ -95,9 +109,10 @@ def register(payload: UserCreate):
         settings = SiteSettings.objects().first()
         bonus_amount = settings.referral_bonus if settings else 0
 
+        # Add bonus to referrer wallet
         ref_wallet = Wallet.objects(user_id=str(referrer.id)).first()
         ref_wallet.balance += bonus_amount
-        ref_wallet.updated_at = datetime.datetime.utcnow()
+        ref_wallet.updated_at = datetime.utcnow()
         ref_wallet.save()
 
     # ---------------------------------------------------
@@ -108,17 +123,19 @@ def register(payload: UserCreate):
     new_user.update(last_login=datetime.utcnow())
 
     # ---------------------------------------------------
-    # RETURN TOKEN + USER OBJECT
+    # RESPONSE (RETURN TOKEN + USER OBJECT + REFERRAL CODE)
     # ---------------------------------------------------
     return {
         "access_token": token,
-        "token_type" :"bearer",
+        "token_type": "bearer",
         "user": {
             "id": str(new_user.id),
             "username": new_user.username,
             "mobile": new_user.mobile,
             "role": new_user.role,
-            "balance": 0  
+            "balance": 0,
+            "referral_code": referral_code,  # <---- ADDED IN RESPONSE
+            "referred_by": payload.referral_code or None
         }
     }
 
