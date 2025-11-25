@@ -1,33 +1,80 @@
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware # <-- 1. Import CORSMiddleware
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+
 from mongoengine import connect
 from app.config import settings
-from app.routes import auth_routes,site_data_routes, notifications_routes, main_settings_routes, how_to_play_routes, admin_routes, user_routes, withdrawal_routes, bids_routes, chart, admin_result, market, jackpot,passbook, images_routes, deposit_qr
 import os
-from app.routes.v1 import v1_declare_market_reslult, v1_user_routes, v1_game_mange, v1_report_management, v1_bids_routes, v1_game_godawari, v1_deposit, v1_refer_routes
 
+# -----------------------------
+# 1. CONNECT MONGODB FIRST
+# -----------------------------
+connect(host=settings.MONGO_URI)
+
+# -----------------------------
+# 2. CREATE FASTAPI APP
+# -----------------------------
 app = FastAPI(title="Matka Satka Backend")
 
+# CORS settings
 origins = [
-    "http://localhost:5173",  
+    "http://localhost:5173",
     "http://127.0.0.1:5173",
     "https://kalyanratan777.com",
-    "https://game.kalyanratan777.com"  # <-- apna domain add karna
+    "https://game.kalyanratan777.com"
 ]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,   # "*" hatao
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-connect(host=settings.MONGO_URI)
+# -----------------------------
+# 3. AFTER CONNECT -> IMPORT ROUTES
+# -----------------------------
+from app.routes import (
+    auth_routes,
+    site_data_routes,
+    notifications_routes,
+    main_settings_routes,
+    how_to_play_routes,
+    admin_routes,
+    user_routes,
+    withdrawal_routes,
+    bids_routes,
+    chart,
+    admin_result,
+    market,
+    jackpot,
+    passbook,
+    images_routes,
+    deposit_qr
+)
+
+from app.routes.v1 import (
+    v1_declare_market_reslult,
+    v1_user_routes,
+    v1_game_mange,
+    v1_report_management,
+    v1_bids_routes,
+    v1_game_godawari,
+    v1_deposit,
+    v1_refer_routes,
+    v1_devloper_routes
+)
+
+# -----------------------------
+# 4. MOUNT STATIC FILES
+# -----------------------------
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 app.mount("/static", StaticFiles(directory="static"), name="static")
-app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+
+# -----------------------------
+# 5. ADD ROUTES
+# -----------------------------
 app.include_router(auth_routes.router)
 app.include_router(admin_routes.router)
 app.include_router(user_routes.router)
@@ -40,11 +87,12 @@ app.include_router(images_routes.router)
 app.include_router(deposit_qr.router)
 app.include_router(passbook.router)
 
-app.include_router(how_to_play_routes.router) 
-app.include_router(site_data_routes.router) 
-app.include_router(main_settings_routes.router) 
+app.include_router(how_to_play_routes.router)
+app.include_router(site_data_routes.router)
+app.include_router(main_settings_routes.router)
 app.include_router(notifications_routes.router)
 app.include_router(jackpot.router)
+
 app.include_router(v1_user_routes.router)
 app.include_router(v1_game_mange.router)
 app.include_router(v1_declare_market_reslult.router)
@@ -53,8 +101,11 @@ app.include_router(v1_bids_routes.router)
 app.include_router(v1_game_godawari.router)
 app.include_router(v1_deposit.router)
 app.include_router(v1_refer_routes.router)
+app.include_router(v1_devloper_routes.router)
 
+# -----------------------------
+# 6. ROOT API
+# -----------------------------
 @app.get("/")
 def root():
-    return {"status":"ok", "message":"Matka backend running"}
-
+    return {"status": "ok", "message": "Matka backend running"}

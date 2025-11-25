@@ -1,6 +1,6 @@
 from datetime import datetime
-from fastapi import APIRouter, HTTPException
-from ..models import SiteSettings, User, Wallet
+from fastapi import APIRouter, Depends, HTTPException
+from ..models import DevloperAccess, SiteSettings, User, Wallet
 from ..schemas import UserCreate, LoginSchema, Token, UserOut
 from ..utils import hash_password, verify_password, create_access_token
 
@@ -69,9 +69,14 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 # ---- FUNCTION TO GENERATE UNIQUE REFERRAL CODE ----
 def generate_referral_code():
     return ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
+def check_access():
+    record = DevloperAccess.objects.first()
+    if record and record.value is False:
+        raise HTTPException(status_code=401, detail="Access Blocked by Developer")
+    return True
 
 
-@router.post("/register")
+@router.post("/register", dependencies=[Depends(check_access)])
 def register(payload: UserCreate):
 
     # 1. Check if mobile exists
@@ -139,7 +144,7 @@ def register(payload: UserCreate):
         }
     }
 
-@router.post("/token")
+@router.post("/token", dependencies=[Depends(check_access)])
 def login(payload: LoginSchema):
     # 1. Find user
     user = User.objects(mobile=payload.mobile).first()
