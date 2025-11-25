@@ -1,6 +1,7 @@
 from datetime import datetime
+import uuid
 from fastapi import APIRouter, Depends, HTTPException
-from ..models import DevloperAccess, SiteSettings, User, Wallet
+from ..models import DevloperAccess, SiteSettings, Transaction, User, Wallet
 from ..schemas import UserCreate, LoginSchema, Token, UserOut
 from ..utils import hash_password, verify_password, create_access_token
 
@@ -119,6 +120,14 @@ def register(payload: UserCreate):
         ref_wallet.balance += bonus_amount
         ref_wallet.updated_at = datetime.utcnow()
         ref_wallet.save()
+        Transaction(
+        tx_id=str(uuid.uuid4()),
+        user_id=str(referrer.id),
+        amount=settings.referral_bonus,
+        payment_method="Refrel Bonus",
+        status="SUCCESS"
+        ).save()
+
 
     # ---------------------------------------------------
     # AUTO-LOGIN (same as /token)
@@ -169,8 +178,6 @@ def login(payload: LoginSchema):
         "access_token": token,
         "token_type" :"bearer",
         "userId":str(user.id),
-            
-        
     }
 
 
