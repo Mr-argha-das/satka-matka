@@ -91,7 +91,6 @@ class Market(Document):
 class Bid(Document):
     user_id = StringField(required=True)
     market_id = StringField(required=True)
-
     game_type = StringField(required=True)  # single, jodi, sp, dp, tp, panna, sangam
     session = StringField(required=True)    # open / close
 

@@ -125,7 +125,7 @@ def get_user_markets(user=Depends(get_current_user)):
         "message": "Markets fetched successfully",
         "data": final_markets
     }
-@router.get("/user/starline/")
+@router.get("/user/starline")
 def get_user_markets(user=Depends(get_current_user)):
     markets = MarketGod.objects(is_active=True, marketType="Starline")
     final_markets = []
@@ -160,6 +160,7 @@ def get_user_markets(user=Depends(get_current_user)):
         "data": final_markets
     }
 
+
 def compute_status(open_time: str, close_time: str):
     try:
         now = datetime.now().strftime("%I:%M %p")
@@ -178,8 +179,8 @@ def compute_status(open_time: str, close_time: str):
         return False
 
 
-@router.get("/market/")
-def get_markets(admin=Depends(require_admin)):
+@router.get("/market")
+def get_markets():
     markets = MarketGod.objects()
     final_markets = []
 
@@ -211,7 +212,7 @@ def get_markets(admin=Depends(require_admin)):
 
 
 @router.get("/market/{market_id}")
-def get_market(market_id: str, admin=Depends(require_admin)):
+def get_market(market_id: str, ):
     market = MarketGod.objects(id=market_id).first()
     if not market:
         raise HTTPException(404, "Market not found")
@@ -237,7 +238,7 @@ def get_market(market_id: str, admin=Depends(require_admin)):
 
 
 @router.put("/market/{market_id}")
-def update_market(market_id: str, data: MarketInput, admin=Depends(require_admin)):
+def update_market(market_id: str, data: MarketInput, ):
     market = MarketGod.objects(id=market_id).first()
     if not market:
         raise HTTPException(404, "Market not found")

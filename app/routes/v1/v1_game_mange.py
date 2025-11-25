@@ -102,7 +102,7 @@ def create_market(data: MarketInput,admin = Depends(require_admin)):
 def get_user_markets(user=Depends(get_current_user)):
     markets = Market.objects(is_active=True, marketType="Market")
     final_markets = []
-    
+
     # TODAY DATE RANGE (12:00 AM – 11:59 PM)
     today = datetime.utcnow().date()
     start = datetime.combine(today, time.min)
@@ -191,8 +191,8 @@ def compute_status(open_time: str, close_time: str):
         # if time invalid → fallback to DB saved value
         return False    
     
-@router.get("/market/")
-def get_markets(admin=Depends(require_admin)):
+@router.get("/market")
+def get_markets():
     markets = Market.objects()
     final_markets = []
     
@@ -227,7 +227,7 @@ def get_markets(admin=Depends(require_admin)):
     }
 
 @router.get("/market/{market_id}")
-def get_market(market_id: str, admin=Depends(require_admin)):
+def get_market(market_id: str):
     market = Market.objects(id=market_id).first()
     if not market:
         raise HTTPException(status_code=404, detail="Market not found")
@@ -259,6 +259,8 @@ def get_market(market_id: str, admin=Depends(require_admin)):
     }
 
 
+
+
 @router.put("/market/{market_id}")
 def update_market(market_id: str, data: MarketInput,admin = Depends(require_admin)):
     market = Market.objects(id=market_id).first()
@@ -279,6 +281,7 @@ def update_market(market_id: str, data: MarketInput,admin = Depends(require_admi
         raise HTTPException(status_code=400, detail="Market name already exists")
 
     return {"message": "Market updated successfully"}
+
 
 @router.patch("/market/{market_id}/status")
 def update_market_status(market_id: str, status: bool,admin = Depends(require_admin)):
