@@ -32,8 +32,7 @@ class SettingsSchema(BaseModel):
     min_bid: float
     max_bid: float
     welcome_bonus: float
-    withdraw_open_time: str
-    withdraw_close_time: str
+    referral_bonus :float
     website_link: str
 
 

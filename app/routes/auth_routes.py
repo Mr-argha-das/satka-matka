@@ -132,13 +132,11 @@ def register(payload: UserCreate):
     # ---------------------------------------------------
     # AUTO-LOGIN (same as /token)
     # ---------------------------------------------------
+
     token = create_access_token(str(new_user.id))
 
     new_user.update(last_login=datetime.utcnow())
 
-    # ---------------------------------------------------
-    # RESPONSE (RETURN TOKEN + USER OBJECT + REFERRAL CODE)
-    # ---------------------------------------------------
     return {
         "access_token": token,
         "token_type": "bearer",

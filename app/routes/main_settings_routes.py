@@ -23,15 +23,12 @@ def get_settings():
         "min_bid": s.min_bid,
         "max_bid": s.max_bid,
         "welcome_bonus": s.welcome_bonus,
-        "withdraw_open_time": s.withdraw_open_time,
-        "withdraw_close_time": s.withdraw_close_time,
+        "referral_bonus" : s.referral_bonus,
         "website_link": s.website_link,
     }
 
 
-# -----------------------------
-# UPDATE (CREATE IF NOT EXIST)
-# -----------------------------
+
 @router.post("/update")
 def update_settings(payload: SettingsSchema):
     s = SiteSettings.objects.first()
@@ -48,8 +45,7 @@ def update_settings(payload: SettingsSchema):
     s.min_bid = payload.min_bid
     s.max_bid = payload.max_bid
     s.welcome_bonus = payload.welcome_bonus
-    s.withdraw_open_time = payload.withdraw_open_time
-    s.withdraw_close_time = payload.withdraw_close_time
+    s.referral_bonus = payload.referral_bonus 
     s.website_link = payload.website_link
 
     s.save()

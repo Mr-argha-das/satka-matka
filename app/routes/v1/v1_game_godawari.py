@@ -6,7 +6,7 @@ from datetime import datetime, time
 import uuid
 from mongoengine.errors import NotUniqueError
 from ...auth import get_current_user, require_admin
-from ...models import Transaction, Wallet
+from ...models import Market, Transaction, User, Wallet
 from pydantic import BaseModel
 from typing import Optional
 
@@ -433,13 +433,65 @@ def delete_result(result_id: str, admin=Depends(require_admin)):
 # WINNING REPORT
 # -----------------------------
 
+# @router.get("/winning-report", dependencies=[Depends(require_admin)])
+# def winning_report(
+#     date: str = Query(...),
+#     market_id: str = None
+# ):
+#     target_date = datetime.strptime(date, "%Y-%m-%d")
+
+#     query = {"date__gte": target_date, "date__lte": target_date}
+#     if market_id:
+#         query["market_id"] = market_id
+
+#     results = ResultGod.objects(**query)
+
+#     if not results:
+#         return {"message": "No results found"}
+
+#     chart = RateChartGod.objects().first()
+#     if not chart:
+#         raise HTTPException(400, "Rate chart missing")
+
+#     reports = []
+
+#     for res in results:
+#         bids = BidGod.objects(market_id=res.market_id)
+
+#         for bid in bids:
+#             win = False
+
+#             if bid.game_type == "single":
+#                 if bid.session == "open" and bid.open_digit == res.open_digit:
+#                     win = True
+#                 if bid.session == "close" and bid.close_digit == res.close_digit:
+#                     win = True
+
+#             if bid.game_type == "jodi":
+#                 if bid.open_digit + bid.close_digit == res.open_digit + res.close_digit:
+#                     win = True
+
+#             if win:
+#                 amount = (chart.jodi_digit_2 if bid.game_type == "jodi" else chart.single_digit_2) * bid.points
+
+#                 reports.append({
+#                     "user_id": bid.user_id,
+#                     "market_id": bid.market_id,
+#                     "game_type": bid.game_type,
+#                     "session": bid.session,
+#                     "open_digit": bid.open_digit,
+#                     "close_digit": bid.close_digit,
+#                     "points": bid.points,
+#                     "win_amount": amount
+#                 })
+
+#     return {"count": len(reports), "data": reports}
 @router.get("/winning-report", dependencies=[Depends(require_admin)])
 def winning_report(
     date: str = Query(...),
     market_id: str = None
 ):
     target_date = datetime.strptime(date, "%Y-%m-%d")
-
     query = {"date__gte": target_date, "date__lte": target_date}
     if market_id:
         query["market_id"] = market_id
@@ -447,7 +499,7 @@ def winning_report(
     results = ResultGod.objects(**query)
 
     if not results:
-        return {"message": "No results found"}
+        return {"message": "No results found", "data": []}
 
     chart = RateChartGod.objects().first()
     if not chart:
@@ -457,10 +509,15 @@ def winning_report(
 
     for res in results:
         bids = BidGod.objects(market_id=res.market_id)
+        market = MarketGod.objects(id=res.market_id).first()
+        market_name = market.name if market else "Unknown Market"
 
         for bid in bids:
-            win = False
+            user = User.objects(id=bid.user_id).first()
+            username = user.username if user else "Unknown User"
+            mobile = user.mobile if user else "N/A"
 
+            win = False
             if bid.game_type == "single":
                 if bid.session == "open" and bid.open_digit == res.open_digit:
                     win = True
@@ -476,13 +533,19 @@ def winning_report(
 
                 reports.append({
                     "user_id": bid.user_id,
+                    "user": username,
+                    "mobile": mobile,
                     "market_id": bid.market_id,
+                    "market_name": market_name,
                     "game_type": bid.game_type,
                     "session": bid.session,
                     "open_digit": bid.open_digit,
                     "close_digit": bid.close_digit,
+                    "open_panna": getattr(bid, "open_panna", None),
+                    "close_panna": getattr(bid, "close_panna", None),
                     "points": bid.points,
-                    "win_amount": amount
+                    "win_amount": amount,
+                    "date": target_date.strftime("%Y-%m-%d"),
                 })
 
     return {"count": len(reports), "data": reports}
@@ -651,7 +714,73 @@ def place_user_bid(payload: UserBidRequest, user=Depends(get_current_user)):
     }
 
 
+@router.get("/admin/bids/all", tags=["Golidesawar Admin"])
+def get_all_bids_admin(
+    user=Depends(get_current_user),
+    date: str = Query(None),         # Format: YYYY-MM-DD
+    session: str = Query(None),      # Open / Close
+    market_name: str = Query(None)   # Market name filter
+):
+    query = BidGod.objects()
 
+    # --------------------------------------
+    # FILTER: DATE
+    # --------------------------------------
+    if date:
+        try:
+            start = datetime.strptime(date, "%Y-%m-%d")
+            end = datetime.strptime(date, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
+            query = query.filter(created_at__gte=start, created_at__lte=end)
+        except:
+            return {"message": "Invalid date format. Use YYYY-MM-DD"}
+
+    # --------------------------------------
+    # FILTER: SESSION
+    # --------------------------------------
+    if session:
+        query = query.filter(session=session)
+
+    # --------------------------------------
+    # FILTER: MARKET NAME
+    # --------------------------------------
+    if market_name:
+        markets = MarketGod.objects(name__icontains=market_name)
+        market_ids = [str(m.id) for m in markets]
+        query = query.filter(market_id__in=market_ids)
+
+    # Fetch bids after filters
+    bids = query.order_by("-created_at")
+
+    result = []
+    for b in bids:
+        # Get Market
+        market = MarketGod.objects(id=b.market_id).first()
+        market_name = market.name if market else "Unknown Market"
+
+        # Get User
+        u = User.objects(id=b.user_id).first()
+        username = u.username if u else "Unknown User"
+        mobile = u.mobile if u else "N/A"
+
+        result.append({
+            "id": str(b.id),
+            "market_id": b.market_id,
+            "market_name": market_name,
+
+            "user_id": b.user_id,
+            "username": username,
+            "mobile": mobile,
+
+            "game_type": b.game_type,
+            "session": b.session,
+            "open_digit": b.open_digit,
+            "close_digit": b.close_digit,
+            "points": b.points,
+
+            "created_at": b.created_at,
+        })
+
+    return {"message": "All bids fetched", "data": result}
 
 
 
@@ -660,7 +789,7 @@ def place_user_bid(payload: UserBidRequest, user=Depends(get_current_user)):
 def get_user_bids(
     market_id: str,
     date: str = Query(...),
-    user=Depends(get_current_user)
+    # user=Depends(get_current_user)
 ):
     """
     Return today's bids for logged-in user (1 bid per day rule)
