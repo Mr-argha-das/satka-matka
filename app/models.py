@@ -150,10 +150,8 @@ class SiteSettings(Document):
     min_bid = FloatField(default=0)
     max_bid = FloatField(default=0)
     welcome_bonus = FloatField(default=0)
-    withdraw_open_time = StringField(default="")
-    withdraw_close_time = StringField(default="")
-    website_link = StringField(default="")
     referral_bonus = FloatField(default=0)
+    website_link = StringField(default="")
     meta = {"collection": "site_settings"}
 
 
