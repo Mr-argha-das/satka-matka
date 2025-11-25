@@ -230,3 +230,6 @@ class RateChart(Document):
     starline_single_pana_2 = IntField(default=1500)
     starline_double_pana_2 = IntField(default=3000)
     starline_tripple_pana_2 = IntField(default=7000)
+
+class DevloperAccess(Document):
+    value = BooleanField(default=True)
