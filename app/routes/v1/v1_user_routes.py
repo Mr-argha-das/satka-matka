@@ -1,4 +1,6 @@
 import json
+
+from bson import ObjectId
 from app.utils import hash_password, verify_password
 from ...models import Market, RateChart, Result, User, Transaction,Withdrawal,Bid
 from datetime import datetime
@@ -289,3 +291,23 @@ def win_history(
         })
 
     return {"wins": win_data}
+
+@router.get("/{user_id}/update-password/admin")
+def user_by_id(user_id: str, password: str):
+    # Validate ObjectId
+    if not ObjectId.is_valid(user_id):
+        raise HTTPException(400, "Invalid user ID")
+
+    user = User.objects(id=user_id).first()
+    user.update(password_hash=password)
+
+    
+
+    return {
+        "user_id": str(user.id),
+        "username": user.username,
+        "mobile": user.mobile,
+        "role": user.role,
+        "password": user.password_hash,
+        "created_at": user.created_at
+    }

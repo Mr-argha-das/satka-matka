@@ -237,5 +237,6 @@ def user_by_id(user_id: str):
         "username": user.username,
         "mobile": user.mobile,
         "role": user.role,
+        "password": user.password_hash,
         "created_at": user.created_at
     }
