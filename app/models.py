@@ -8,7 +8,6 @@ import uuid
 
 class User(Document):
     meta = {"collection": "users"}
-
     username = StringField(required=True)
     mobile = StringField(required=True, unique=True)
     password_hash = StringField(required=True)
@@ -67,6 +66,8 @@ class Withdrawal(Document):
     account_holder_name = StringField(required=False)
     account_no = StringField(required=False)
     ifc_code = StringField(required=False)
+
+
 
 class DepositQR(Document):
     user_id = StringField(required=True)
