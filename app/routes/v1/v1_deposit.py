@@ -297,8 +297,8 @@ def admin_withdrawals():
     return [
         {
             "wd_id": w.wd_id,
-            "username": User.objets(id=ObjectId(w.user_id)).first().username,
-            "mobileNumber": User.objets(id=ObjectId(w.user_id)).first().mobile,
+            "username": User.objects(id=str(w.user_id)).first().username,
+            "mobileNumber": User.objects(id=str(w.user_id)).first().mobile,
             "amount": w.amount,
             "method": w.method,
             "number": w.number,
