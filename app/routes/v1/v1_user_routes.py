@@ -129,11 +129,11 @@ def user_details(user_id: str, use2r=Depends(require_admin)):
     user = User.objects(id=user_id).first()
     if not user:
         raise HTTPException(404, "User not found")
-    total = Transaction.objects(user_id=str(user_id), status="Approved",payment_method="Deposit").sum("amount") or 0.0
+    total = Transaction.objects(user_id=str(user_id), status="SUCCESS",payment_method="Deposit").sum("amount") or 0.0
     total2 = Withdrawal.objects(user_id=str(user_id), status="SUCCESS").sum("amount") or 0.0
     bids = Bid.objects(user_id=str(user.id)).order_by("-created_at").limit(100)
-    totalWitdh = Transaction.objects(user_id=str(user_id), status="Approved",payment_method="Withdrawal")
-    totalDeposit = Transaction.objects(user_id=str(user_id), status="Approved",payment_method="Deposit")
+    totalWitdh = Transaction.objects(user_id=str(user_id), status="SUCCESS",payment_method="Withdrawal")
+    totalDeposit = Transaction.objects(user_id=str(user_id), status="SUCCESS",payment_method="Deposit")
     query = {
         "user_id": str(user.id),
         "payment_method": "WIN",
