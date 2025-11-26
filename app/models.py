@@ -8,7 +8,6 @@ import uuid
 
 class User(Document):
     meta = {"collection": "users"}
-
     username = StringField(required=True)
     mobile = StringField(required=True, unique=True)
     password_hash = StringField(required=True)
@@ -64,6 +63,8 @@ class Withdrawal(Document):
     status = StringField(default="pending")  
     created_at = DateTimeField(default=datetime.datetime.utcnow)
     confirmed_at = DateTimeField()
+
+
 
 class DepositQR(Document):
     user_id = StringField(required=True)
