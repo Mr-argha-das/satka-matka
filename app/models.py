@@ -59,10 +59,13 @@ class Withdrawal(Document):
     user_id = StringField(required=True)
     amount = FloatField(required=True)
     method = StringField(required=True)  # Paytm / PhonePe / GooglePay
-    number = StringField(required=True)
+    number = StringField(required=False)
     status = StringField(default="pending")  
     created_at = DateTimeField(default=datetime.datetime.utcnow)
     confirmed_at = DateTimeField()
+    account_holder_name = StringField(required=False)
+    account_no = StringField(required=False)
+    ifc_code = StringField(required=False)
 
 
 
@@ -88,6 +91,7 @@ class Market(Document):
     
     is_active = BooleanField(default=True)
     status = BooleanField(default=True)  # Open / Close
+   
 
 class Bid(Document):
     user_id = StringField(required=True)
