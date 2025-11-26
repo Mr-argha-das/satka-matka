@@ -357,7 +357,7 @@ def get_market_results(market_id: str = Query(None), ):
 
     return final_output
 
-@router.post("/{market_id}/toggle")
+@router.get("/{market_id}/toggle")
 def toggle_market_status(market_id: str):
 
     # 1. Find market
