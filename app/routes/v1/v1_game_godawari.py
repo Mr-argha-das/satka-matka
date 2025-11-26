@@ -250,6 +250,42 @@ def update_market(market_id: str, data: MarketInput, ):
         market.save()
     except NotUniqueError:
         raise HTTPException(400, "Market name already exists")
+    if market.is_active is False:
+        today = datetime.utcnow().date()
+
+        # Convert today's date + open/close time
+        open_dt = datetime.strptime(f"{today} {market.open_time}", "%Y-%m-%d %H:%M")
+        close_dt = datetime.strptime(f"{today} {market.close_time}", "%Y-%m-%d %H:%M")
+
+        # 3. Find bids between open-close time
+        bids = BidGod.objects(
+            market_id=str(market.id),
+            created_at__gte=open_dt,
+            created_at__lte=close_dt
+        )
+
+        refund_count = 0
+
+        for bid in bids:
+            user_wallet = Wallet.objects(user_id=bid.user_id).first()
+            if not user_wallet:
+                continue
+
+            # Refund user wallet
+            user_wallet.balance += bid.points
+            user_wallet.updated_at = datetime.utcnow()
+            user_wallet.save()
+
+            # Create transaction record
+            Transaction(
+                tx_id=str(uuid.uuid4()),
+                user_id=bid.user_id,
+                amount=bid.points,
+                payment_method=f"Market Refund ({market.name})",
+                status="SUCCESS"
+            ).save()
+
+            refund_count += 1
 
     return {"message": "Market updated successfully"}
 
