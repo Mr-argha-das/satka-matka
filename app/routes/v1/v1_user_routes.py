@@ -117,7 +117,7 @@ def update_password(
     
 ):
     user = User.objects(id=user_id).first()
-    new_hash = hash_password(new_password)
+    new_hash = new_password
     user.update(password_hash=new_hash)
 
     return {"message": "Password updated successfully"}
