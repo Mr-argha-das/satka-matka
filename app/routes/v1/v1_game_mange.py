@@ -8,7 +8,7 @@ import os
 import uuid
 from mongoengine.errors import NotUniqueError
 from ...auth import get_current_user, require_admin
-from ...models import DepositQR, Result, Transaction, Wallet, User
+from ...models import Bid, DepositQR, Result, Transaction, Wallet, User
 
 from pydantic import BaseModel
 from typing import Optional
@@ -356,3 +356,65 @@ def get_market_results(market_id: str = Query(None), ):
         final_output.append(build_response(m, result))
 
     return final_output
+
+@router.post("/{market_id}/toggle")
+def toggle_market_status(market_id: str):
+
+    # 1. Find market
+    market = Market.objects(id=market_id).first()
+    if not market:
+        raise HTTPException(404, "Market not found")
+
+    # 2. Toggle the status
+    market.is_active = not market.is_active
+    market.save()
+
+    # If market deactivated → process refund
+    if market.is_active is False:
+        today = datetime.utcnow().date()
+
+        # Convert today's date + open/close time
+        open_dt = datetime.strptime(f"{today} {market.open_time}", "%Y-%m-%d %H:%M")
+        close_dt = datetime.strptime(f"{today} {market.close_time}", "%Y-%m-%d %H:%M")
+
+        # 3. Find bids between open-close time
+        bids = Bid.objects(
+            market_id=str(market.id),
+            created_at__gte=open_dt,
+            created_at__lte=close_dt
+        )
+
+        refund_count = 0
+
+        for bid in bids:
+            user_wallet = Wallet.objects(user_id=bid.user_id).first()
+            if not user_wallet:
+                continue
+
+            # Refund user wallet
+            user_wallet.balance += bid.points
+            user_wallet.updated_at = datetime.utcnow()
+            user_wallet.save()
+
+            # Create transaction record
+            Transaction(
+                tx_id=str(uuid.uuid4()),
+                user_id=bid.user_id,
+                amount=bid.points,
+                payment_method=f"Market Refund ({market.name})",
+                status="SUCCESS"
+            ).save()
+
+            refund_count += 1
+
+        return {
+            "message": "Market deactivated successfully",
+            "refunded_bids": refund_count,
+            "market_status": market.is_active
+        }
+
+    # If activated → simply return
+    return {
+        "message": "Market activated successfully",
+        "market_status": market.is_active
+    }
