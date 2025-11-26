@@ -292,7 +292,11 @@ def win_history(
 
     return {"wins": win_data}
 
+<<<<<<< HEAD
 @router.get("/{user_id}/update-password")
+=======
+@router.get("/{user_id}/update-password/admin/{password}")
+>>>>>>> dc5b30a71bc50bd839bb3c8abe641a11bbc479cf
 def user_by_id(user_id: str, password: str):
     # Validate ObjectId
     if not ObjectId.is_valid(user_id):
