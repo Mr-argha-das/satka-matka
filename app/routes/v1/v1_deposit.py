@@ -1,3 +1,4 @@
+from bson import ObjectId
 from fastapi import APIRouter, UploadFile, File, Depends, HTTPException, Form
 from fastapi.responses import FileResponse
 # from datetime import datetime
@@ -295,6 +296,8 @@ def admin_withdrawals():
     return [
         {
             "wd_id": w.wd_id,
+            "username": User.objets(id=ObjectId(w.user_id)).first().username,
+            "mobileNumber": User.objets(id=ObjectId(w.user_id)).first().mobile,
             "amount": w.amount,
             "method": w.method,
             "number": w.number,
