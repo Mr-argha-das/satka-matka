@@ -218,23 +218,39 @@ def get_or_create_wallet(user_id: str):
 # 7️⃣ USER: Request Withdrawal
 # =====================================================================
 
+from fastapi import Form, HTTPException, Depends
+
 @router.post("/withdraw/request")
-def request_withdraw(amount: float = Form(...), method: str = Form(...), number: str = Form(...),
-                     user=Depends(get_current_user)):
+def request_withdraw(
+    amount: float = Form(...),
+    method: str = Form(...),
+
+    number: str | None = Form(None),                 # OPTIONAL
+    account_holder_name: str | None = Form(None),    # OPTIONAL
+    account_no: str | None = Form(None),             # OPTIONAL
+    ifc_code: str | None = Form(None),               # OPTIONAL
+
+    user=Depends(get_current_user)
+):
 
     wallet = get_or_create_wallet(str(user.id))
 
+    # Basic validations
     if amount <= 0:
         raise HTTPException(400, "Amount must be positive")
 
     if wallet.balance < amount:
         raise HTTPException(400, "Insufficient balance")
 
+    # Create withdrawal request
     wd = Withdrawal(
         user_id=str(user.id),
         amount=amount,
         method=method,
-        number=number
+        number=number,
+        account_holder_name=account_holder_name,
+        account_no=account_no,
+        ifc_code=ifc_code
     ).save()
 
     return {
@@ -242,6 +258,7 @@ def request_withdraw(amount: float = Form(...), method: str = Form(...), number:
         "withdrawal_id": wd.wd_id,
         "status": wd.status
     }
+
 
 
 # =====================================================================
@@ -258,7 +275,10 @@ def my_withdrawals(user=Depends(get_current_user)):
             "method": w.method,
             "number": w.number,
             "status": w.status,
-            "created_at": w.created_at
+            "created_at": w.created_at,
+            "account_holder_name":w.account_holder_name,
+            "account_no":w.account_no,
+            "ifc_code": w.ifc_code
         }
         for w in data
     ]
@@ -275,12 +295,14 @@ def admin_withdrawals():
     return [
         {
             "wd_id": w.wd_id,
-            "user_id": w.user_id,
             "amount": w.amount,
             "method": w.method,
             "number": w.number,
             "status": w.status,
-            "created_at": w.created_at
+            "created_at": w.created_at,
+            "account_holder_name":w.account_holder_name,
+            "account_no":w.account_no,
+            "ifc_code": w.ifc_code
         }
         for w in pending
     ]
