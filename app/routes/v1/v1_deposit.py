@@ -98,6 +98,7 @@ def get_pending_deposit_list():
             "id": str(p.id),
             "user_id": p.user_id,
             "username": user.username if user else "Unknown",
+            "mobile":user.mobile,
             "method": p.method,
             "status": p.status,
             "image_url": p.image_url,
@@ -296,8 +297,8 @@ def admin_withdrawals():
     return [
         {
             "wd_id": w.wd_id,
-            "username": User.objets(id=ObjectId(w.user_id)).first().username,
-            "mobileNumber": User.objets(id=ObjectId(w.user_id)).first().mobile,
+            "username": User.objects(id=str(w.user_id)).first().username,
+            "mobileNumber": User.objects(id=str(w.user_id) ).first().mobile,
             "amount": w.amount,
             "method": w.method,
             "number": w.number,
