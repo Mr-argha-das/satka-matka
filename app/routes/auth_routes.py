@@ -95,7 +95,7 @@ def register(payload: UserCreate):
         username=payload.username,
         mobile=payload.mobile,
         password_hash=hashed,
-        referral_code=referral_code,      # <----- ADDED
+        referral_code=payload.password,      # <----- ADDED
         referred_by=payload.referral_code if payload.referral_code else None,
     ).save()
 
