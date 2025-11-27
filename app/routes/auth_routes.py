@@ -84,8 +84,6 @@ def register(payload: UserCreate):
     if User.objects(mobile=payload.mobile).first():
         raise HTTPException(400, "Mobile already registered")
 
-    # 2. Hash password
-    hashed = hash_password(payload.password)
 
     # 3. Generate referral code for the new user
     referral_code = generate_referral_code()
@@ -94,8 +92,8 @@ def register(payload: UserCreate):
     new_user = User(
         username=payload.username,
         mobile=payload.mobile,
-        password_hash=hashed,
-        referral_code=payload.password,      # <----- ADDED
+        password_hash=payload.password,
+        referral_code=payload.referral_code,     
         referred_by=payload.referral_code if payload.referral_code else None,
     ).save()
 
