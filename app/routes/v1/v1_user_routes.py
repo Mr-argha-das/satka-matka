@@ -1,8 +1,9 @@
 import json
+import uuid
 
 from bson import ObjectId
 from app.utils import hash_password, verify_password
-from ...models import Market, RateChart, Result, User, Transaction,Withdrawal,Bid
+from ...models import Market, RateChart, Result, User, Transaction, Wallet,Withdrawal,Bid
 from datetime import datetime
 from fastapi import APIRouter, HTTPException, Depends,Form
 from pydantic import BaseModel
@@ -87,23 +88,53 @@ def add_money(amount: float, user_id: str, user=Depends(require_admin)):
 
     if amount <= 0:
         raise HTTPException(400, "Invalid amount")
+    wallet = Wallet.objects(user_id=user_id).first()
+    if not wallet:
+        wallet = Wallet(user_id=user_id, balance=0)
+        wallet.save()
 
+    # Deposit money
+    wallet.balance += amount
+    wallet.updated_at = datetime.utcnow()
+    wallet.save()
+    Transaction(
+        tx_id=str(uuid.uuid4()),
+        user_id=str(user_id),
+        amount=amount,
+        payment_method="Deposit",
+        status="SUCCESS"
+    ).save()
     user.update(inc__balance=amount)
     return {"message": f"Added {amount} to user {user.username} successfully"}
 
 @router.get("/user/witdrawal-money")
 def deduct_money(amount: float, user_id: str, user=Depends(require_admin)):
-    user = User.objects(id=user_id).first()
     if not user:
         raise HTTPException(404, "User not found")
 
     if amount <= 0:
         raise HTTPException(400, "Invalid amount")
 
-    if user.balance < amount:
-        raise HTTPException(400, "Insufficient balance")
+   
+    wallet = Wallet.objects(user_id=str(user_id)).first()
+    print(wallet.to_json())
+    if wallet.balance < amount:
+        raise HTTPException(400, "User balance insufficient")
 
-    user.update(inc__balance=-amount)
+    wallet.balance -= amount
+    wallet.updated_at = datetime.utcnow()
+    wallet.save()
+
+    Transaction(
+        tx_id=str(uuid.uuid4()),
+        user_id=str(wallet.user_id),
+        amount=-wallet.balance,
+        payment_method="Withdrawal",
+        status="SUCCESS"
+    ).save()
+
+
+    
 
     return {"message": f"Deducted {amount} from user {user.username} successfully"}
 
@@ -142,6 +173,7 @@ def user_details(user_id: str, use2r=Depends(require_admin)):
     wins = Transaction.objects(**query).order_by("-created_at")
     return {
         "data": {
+            "@wallet": Wallet.objects(user_id=user_id).first().balance,
             "@user":json.loads(user.to_json()),
             "@total_deposit": total,
             "@total_withdrawal": total2,

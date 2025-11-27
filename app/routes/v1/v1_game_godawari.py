@@ -7,7 +7,7 @@ from datetime import datetime, time, timedelta
 import uuid
 from mongoengine.errors import NotUniqueError
 from ...auth import get_current_user, require_admin
-from ...models import Market, Transaction, User, Wallet
+from ...models import  Transaction, User, Wallet
 from pydantic import BaseModel
 from typing import Optional
 
@@ -662,7 +662,125 @@ class UserBidRequest(BaseModel):
     digit: str
     points: int
 
-@router.post("/bid")
+def parse_time(value: str):
+    """Convert string like '10:00 AM' to time object"""
+    return datetime.strptime(value, "%I:%M %p").time()
+
+
+# @router.post("/bid")
+# def place_user_bid(payload: UserBidRequest, user=Depends(get_current_user)):
+
+#     # Validate points
+#     if payload.points <= 0:
+#         raise HTTPException(400, "Points must be greater than 0")
+
+#     digit = payload.digit.strip()
+
+#     # -------------------------------
+#     # Time-based session validation
+#     # -------------------------------
+#     market = MarketGod.objects(id=payload.market_id).first()
+#     if not market:
+#         raise HTTPException(404, "Invalid Market ID")
+
+#     now = datetime.now().time()
+
+#     # FIX: convert string → time
+#     open_time = parse_time(market.open_time)
+#     close_time = parse_time(market.close_time)
+
+#     # Decide allowed session based on time
+#     if now < open_time:
+#         allowed_session = "open"
+
+#     elif open_time <= now <= close_time:
+#         allowed_session = "close"
+
+#     else:
+#         raise HTTPException(400, "Market closed, you cannot place a bid now")
+
+#     # -------------------------------
+#     # DIGIT validation
+#     # -------------------------------
+#     if payload.game_type == "open":
+#         if len(digit) != 1:
+#             raise HTTPException(400, "Open digit must be 1 digit")
+#         session = "open"
+
+#     elif payload.game_type == "close":
+#         if len(digit) != 1:
+#             raise HTTPException(400, "Close digit must be 1 digit")
+#         session = "close"
+
+#     elif payload.game_type == "jodi":
+#         if len(digit) != 2:
+#             raise HTTPException(400, "Jodi must be 2 digits")
+#         session = "close"   # jodi always close
+
+#     else:
+#         raise HTTPException(400, "Invalid game type")
+
+#     # -------------------------------
+#     # ENFORCE TIME SESSION RULE
+#     # -------------------------------
+#     if session != allowed_session:
+#         raise HTTPException(
+#             400,
+#             f"You can place only {allowed_session.upper()} session bid at this time"
+#         )
+
+#     # -------------------------------
+#     # Wallet check
+#     # -------------------------------
+#     wallet = Wallet.objects(user_id=str(user.id)).first()
+#     if not wallet:
+#         raise HTTPException(404, "Wallet not found")
+
+#     if wallet.balance < payload.points:
+#         raise HTTPException(400, "Insufficient wallet balance")
+
+#     wallet.update(dec__balance=payload.points)
+
+#     # -------------------------------
+#     # Prepare digits
+#     # -------------------------------
+#     if payload.game_type == "open":
+#         open_digit = digit
+#         close_digit = "-"
+
+#     elif payload.game_type == "close":
+#         open_digit = "-"
+#         close_digit = digit
+
+#     else:  # jodi
+#         open_digit = digit[0]
+#         close_digit = digit[1]
+
+#     # -------------------------------
+#     # Save bid
+#     # -------------------------------
+#     bid = BidGod(
+#         user_id=str(user.id),
+#         market_id=payload.market_id,
+#         game_type="jodi" if payload.game_type == "jodi" else "single",
+#         session=session,
+#         open_digit=open_digit,
+#         close_digit=close_digit,
+#         points=payload.points
+#     ).save()
+
+#     return {
+#         "message": "Bid placed successfully",
+#         "data": {
+#             "session": session,
+#             "open_digit": open_digit,
+#             "close_digit": close_digit,
+#             "points": payload.points
+#         }
+#     }
+
+
+@router.post("/bid",)
 def place_user_bid(payload: UserBidRequest, user=Depends(get_current_user)):
 
     # Validate points
@@ -671,58 +789,23 @@ def place_user_bid(payload: UserBidRequest, user=Depends(get_current_user)):
 
     digit = payload.digit.strip()
 
-    # -------------------------------
-    # Time-based session validation
-    # -------------------------------
-    market = Market.objects(id=payload.market_id).first()
-    if not market:
-        raise HTTPException(404, "Invalid Market ID")
-
-    now = datetime.datetime.now().time()
-    open_time = market.open_time
-    close_time = market.close_time
-
-    # Decide what session SHOULD be based on time
-    if now < open_time:
-        allowed_session = "open"
-    elif open_time <= now <= close_time:
-        allowed_session = "close"
-    else:
-        raise HTTPException(400, "Market closed, you cannot place a bid now")
-
-    # -------------------------------
-    # DIGIT validation
-    # -------------------------------
+    # Game validations
     if payload.game_type == "open":
         if len(digit) != 1:
             raise HTTPException(400, "Open digit must be 1 digit")
-        session = "open"
 
     elif payload.game_type == "close":
         if len(digit) != 1:
             raise HTTPException(400, "Close digit must be 1 digit")
-        session = "close"
 
     elif payload.game_type == "jodi":
         if len(digit) != 2:
             raise HTTPException(400, "Jodi must be 2 digits")
-        session = "close"   # jodi always goes to close session
 
     else:
         raise HTTPException(400, "Invalid game type")
 
-    # -------------------------------
-    # ENFORCE TIME SESSION RULE
-    # -------------------------------
-    if session != allowed_session:
-        raise HTTPException(
-            400,
-            f"You can place only {allowed_session.upper()} session bid at this time"
-        )
-
-    # -------------------------------
-    # Wallet check
-    # -------------------------------
+    # Check wallet
     wallet = Wallet.objects(user_id=str(user.id)).first()
     if not wallet:
         raise HTTPException(404, "Wallet not found")
@@ -730,27 +813,29 @@ def place_user_bid(payload: UserBidRequest, user=Depends(get_current_user)):
     if wallet.balance < payload.points:
         raise HTTPException(400, "Insufficient wallet balance")
 
-    # Deduct balance
+    # ❌ REMOVE same-day restriction
+    # User can place unlimited bids in same market
+
+    # Deduct wallet balance
     wallet.update(dec__balance=payload.points)
 
-    # -------------------------------
-    # Prepare digits
-    # -------------------------------
+    # Prepare bid fields
     if payload.game_type == "open":
+        session = "open"
         open_digit = digit
         close_digit = "-"
 
     elif payload.game_type == "close":
+        session = "close"
         open_digit = "-"
         close_digit = digit
 
     else:  # jodi
+        session = "close"
         open_digit = digit[0]
         close_digit = digit[1]
 
-    # -------------------------------
-    # Save bid
-    # -------------------------------
+    # Save the bid
     bid = BidGod(
         user_id=str(user.id),
         market_id=payload.market_id,
@@ -759,19 +844,18 @@ def place_user_bid(payload: UserBidRequest, user=Depends(get_current_user)):
         open_digit=open_digit,
         close_digit=close_digit,
         points=payload.points
-    ).save()
+    )
+    bid.save()
 
     return {
         "message": "Bid placed successfully",
         "data": {
-            "session": session,
             "open_digit": open_digit,
             "close_digit": close_digit,
+            "session": session,
             "points": payload.points
         }
     }
-
-
 
 @router.get("/admin/bids/all", tags=["Golidesawar Admin"])
 def get_all_bids_admin(

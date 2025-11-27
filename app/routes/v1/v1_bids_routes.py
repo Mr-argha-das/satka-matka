@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, Depends
-import datetime
+from datetime import datetime, timedelta
 from ...models import Bid, Wallet, Market
 from ...auth import get_current_user, require_admin
 
@@ -135,25 +135,31 @@ def place_bid(
         raise HTTPException(404, "Invalid Market ID")
 
     # -------------------------
+    # TIME PARSING FIX
+    # -------------------------
+    def parse_time(t):
+        return datetime.strptime(t, "%I:%M %p").time()
+
+    now = datetime.now().time()
+    open_time = parse_time(market.open_time)
+    close_time = parse_time(market.close_time)
+
+    # -------------------------
     # TIME LOGIC START
     # -------------------------
-    now = datetime.datetime.now().time()
-    open_time = market.open_time
-    close_time = market.close_time
-
     # Case 1: Before open_time → only OPEN allowed
     if now < open_time:
         if session != "open":
-            raise HTTPException(400, "You can place only OPEN session bid before market open time")
+            raise HTTPException(400, "You can place only OPEN session before market open time")
 
     # Case 2: Between open and close → only CLOSE allowed
     elif open_time <= now <= close_time:
         if session != "close":
-            raise HTTPException(400, "You can place only CLOSE session bid between open and close time")
+            raise HTTPException(400, "You can place only CLOSE session between open and close time")
 
-    # Case 3: After close_time → no bidding allowed
+    # Case 3: After close_time → market closed
     else:
-        raise HTTPException(400, "Market closed, you cannot place a bid now")
+        raise HTTPException(400, "Market closed, cannot place bid now")
 
     # -------------------------
     # TIME LOGIC END
@@ -168,11 +174,11 @@ def place_bid(
         raise HTTPException(400, "Invalid Session")
 
     # -------------------------
-    # Digit Logic (unchanged)
+    # Sangam Logic
     # -------------------------
     if game_type == "full_sangam":
         if not open_panna or not close_panna:
-            raise HTTPException(400, "Full Sangam requires open_panna and close_panna")
+            raise HTTPException(400, "Full Sangam requires open_panna & close_panna")
         digit = f"{open_panna}-{close_panna}"
 
     elif game_type == "half_sangam":
@@ -186,12 +192,13 @@ def place_bid(
     elif digit is None:
         raise HTTPException(400, "Digit is required for this game type")
 
+    # Digit validation
     validate_digit(game_type, digit)
 
-    # Deduct Wallet
+    # Wallet Deduction
     wallet.update(
         dec__balance=points,
-        set__updated_at=datetime.datetime.utcnow()
+        set__updated_at=datetime.utcnow()
     )
 
     # Save Bid
@@ -216,7 +223,6 @@ def place_bid(
             "created_at": bid.created_at
         }
     }
-
 
 # ------------------------------
 # MY BIDS
