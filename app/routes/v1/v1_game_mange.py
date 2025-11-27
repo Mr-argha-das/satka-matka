@@ -12,6 +12,7 @@ from ...models import Bid, DepositQR, Result, Transaction, Wallet, User
 
 from pydantic import BaseModel
 from typing import Optional
+from datetime import datetime, timedelta
 
 
 
@@ -169,27 +170,59 @@ def get_user_markets(user=Depends(get_current_user)):
     }
 
 
+from datetime import datetime, timedelta
 
 def compute_status(open_time: str, close_time: str):
-    """Return True if current time is between open_time and close_time."""
-    try:
-        # Normalize to 24hr format
-        now = datetime.now().strftime("%I:%M %p")
+    fmt = "%I:%M %p"
+    now = datetime.now()
 
-        fmt = "%I:%M %p"
-        open_dt = datetime.strptime(open_time, fmt)
-        close_dt = datetime.strptime(close_time, fmt)
-        now_dt = datetime.strptime(now, fmt)
+    # parse to time
+    open_t = datetime.strptime(open_time, fmt).time()
+    close_t = datetime.strptime(close_time, fmt).time()
 
-        # Handle cross-midnight cases
-        if open_dt <= close_dt:
-            return open_dt <= now_dt <= close_dt
-        else:
-            return now_dt >= open_dt or now_dt <= close_dt
+    # build datetime with today's date
+    open_dt = now.replace(hour=open_t.hour, minute=open_t.minute, second=0, microsecond=0)
+    close_dt = now.replace(hour=close_t.hour, minute=close_t.minute, second=0, microsecond=0)
+    midnight = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    next_midnight = midnight + timedelta(days=1)
 
-    except Exception:
-        # if time invalid → fallback to DB saved value
-        return False    
+    # ----------------------------------------------------
+    # CASE A: Close time is SAME-DAY (close < 12 AM)
+    # ----------------------------------------------------
+    if close_dt > open_dt:  # normal same-day close
+
+        # Now < open_time → OPEN (rule: early morning open)
+        if now < open_dt:
+            return True
+
+        # open <= now <= close → OPEN
+        if open_dt <= now <= close_dt:
+            return True
+
+        # now > close → CLOSED until midnight
+        if now > close_dt:
+            return False
+
+    # ----------------------------------------------------
+    # CASE B: Close time NEXT DAY (close < open)
+    # ----------------------------------------------------
+    else:
+        # close is next-day
+        close_dt = close_dt + timedelta(days=1)
+
+        # open_time <= now <= close_time(next day) → OPEN
+        if open_dt <= now <= close_dt:
+            return True
+
+        # After close → CLOSED
+        if now > close_dt:
+            return False
+
+        # AFTER midnight but before open_time → OPEN
+        if midnight <= now < open_dt:
+            return True
+
+
     
 @router.get("/market")
 def get_markets():

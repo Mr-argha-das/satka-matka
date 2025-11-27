@@ -1,8 +1,9 @@
 import json
 from app.new_models import MarketGod, RateChartGod, BidGod, ResultGod
 
+from app.routes.v1.v1_bids_routes import compute_status
 from fastapi import APIRouter, Depends, HTTPException, Query
-from datetime import datetime, time
+from datetime import datetime, time, timedelta
 import uuid
 from mongoengine.errors import NotUniqueError
 from ...auth import get_current_user, require_admin
@@ -98,6 +99,7 @@ def get_user_markets(user=Depends(get_current_user)):
     
     # TODAY DATE RANGE (12:00 AM – 11:59 PM)
     today = datetime.utcnow().date()
+    print(today)
     start = datetime.combine(today, time.min)
     end = datetime.combine(today, time.max)
 
@@ -125,6 +127,8 @@ def get_user_markets(user=Depends(get_current_user)):
         "message": "Markets fetched successfully",
         "data": final_markets
     }
+
+
 @router.get("/user/starline")
 def get_user_markets(user=Depends(get_current_user)):
     markets = MarketGod.objects(is_active=True, marketType="Starline")
@@ -161,22 +165,7 @@ def get_user_markets(user=Depends(get_current_user)):
     }
 
 
-def compute_status(open_time: str, close_time: str):
-    try:
-        now = datetime.now().strftime("%I:%M %p")
-        fmt = "%I:%M %p"
 
-        open_dt = datetime.strptime(open_time, fmt)
-        close_dt = datetime.strptime(close_time, fmt)
-        now_dt = datetime.strptime(now, fmt)
-
-        if open_dt <= close_dt:
-            return open_dt <= now_dt <= close_dt
-        else:
-            return now_dt >= open_dt or now_dt <= close_dt
-
-    except:
-        return False
 
 
 @router.get("/market")
@@ -185,6 +174,7 @@ def get_markets():
     final_markets = []
 
     today = datetime.utcnow().date()
+    print(today)
     start = datetime.combine(today, time.min)
     end = datetime.combine(today, time.max)
 
@@ -672,7 +662,7 @@ class UserBidRequest(BaseModel):
     digit: str
     points: int
 
-@router.post("/bid",)
+@router.post("/bid")
 def place_user_bid(payload: UserBidRequest, user=Depends(get_current_user)):
 
     # Validate points
@@ -681,23 +671,58 @@ def place_user_bid(payload: UserBidRequest, user=Depends(get_current_user)):
 
     digit = payload.digit.strip()
 
-    # Game validations
+    # -------------------------------
+    # Time-based session validation
+    # -------------------------------
+    market = Market.objects(id=payload.market_id).first()
+    if not market:
+        raise HTTPException(404, "Invalid Market ID")
+
+    now = datetime.datetime.now().time()
+    open_time = market.open_time
+    close_time = market.close_time
+
+    # Decide what session SHOULD be based on time
+    if now < open_time:
+        allowed_session = "open"
+    elif open_time <= now <= close_time:
+        allowed_session = "close"
+    else:
+        raise HTTPException(400, "Market closed, you cannot place a bid now")
+
+    # -------------------------------
+    # DIGIT validation
+    # -------------------------------
     if payload.game_type == "open":
         if len(digit) != 1:
             raise HTTPException(400, "Open digit must be 1 digit")
+        session = "open"
 
     elif payload.game_type == "close":
         if len(digit) != 1:
             raise HTTPException(400, "Close digit must be 1 digit")
+        session = "close"
 
     elif payload.game_type == "jodi":
         if len(digit) != 2:
             raise HTTPException(400, "Jodi must be 2 digits")
+        session = "close"   # jodi always goes to close session
 
     else:
         raise HTTPException(400, "Invalid game type")
 
-    # Check wallet
+    # -------------------------------
+    # ENFORCE TIME SESSION RULE
+    # -------------------------------
+    if session != allowed_session:
+        raise HTTPException(
+            400,
+            f"You can place only {allowed_session.upper()} session bid at this time"
+        )
+
+    # -------------------------------
+    # Wallet check
+    # -------------------------------
     wallet = Wallet.objects(user_id=str(user.id)).first()
     if not wallet:
         raise HTTPException(404, "Wallet not found")
@@ -705,29 +730,27 @@ def place_user_bid(payload: UserBidRequest, user=Depends(get_current_user)):
     if wallet.balance < payload.points:
         raise HTTPException(400, "Insufficient wallet balance")
 
-    # ❌ REMOVE same-day restriction
-    # User can place unlimited bids in same market
-
-    # Deduct wallet balance
+    # Deduct balance
     wallet.update(dec__balance=payload.points)
 
-    # Prepare bid fields
+    # -------------------------------
+    # Prepare digits
+    # -------------------------------
     if payload.game_type == "open":
-        session = "open"
         open_digit = digit
         close_digit = "-"
 
     elif payload.game_type == "close":
-        session = "close"
         open_digit = "-"
         close_digit = digit
 
     else:  # jodi
-        session = "close"
         open_digit = digit[0]
         close_digit = digit[1]
 
-    # Save the bid
+    # -------------------------------
+    # Save bid
+    # -------------------------------
     bid = BidGod(
         user_id=str(user.id),
         market_id=payload.market_id,
@@ -736,18 +759,18 @@ def place_user_bid(payload: UserBidRequest, user=Depends(get_current_user)):
         open_digit=open_digit,
         close_digit=close_digit,
         points=payload.points
-    )
-    bid.save()
+    ).save()
 
     return {
         "message": "Bid placed successfully",
         "data": {
+            "session": session,
             "open_digit": open_digit,
             "close_digit": close_digit,
-            "session": session,
             "points": payload.points
         }
     }
+
 
 
 @router.get("/admin/bids/all", tags=["Golidesawar Admin"])
