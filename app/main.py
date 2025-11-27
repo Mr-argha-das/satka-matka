@@ -18,14 +18,11 @@ app = FastAPI(title="Matka Satka Backend")
 
 # CORS settings
 origins = [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-    "https://kalyanratan777.com",
     "https://game.kalyanratan777.com",
     "https://api.kalyanratan777.com",
-    "https://game.kalyanratan777.com/*"
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
 ]
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
