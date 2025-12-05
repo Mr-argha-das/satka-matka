@@ -17,19 +17,13 @@ connect(host=settings.MONGO_URI)
 app = FastAPI(title="Matka Satka Backend")
 
 # CORS settings
-origins = [
-    "https://game.kalyanratan777.com",
-    "https://api.kalyanratan777.com",
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-    "https://qbwm3635-5173.inc1.devtunnels.ms",
-]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=["*"],          # Allow ALL origins
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["*"],          # Allow ALL methods
+    allow_headers=["*"],          # Allow ALL headers
 )
 
 # -----------------------------
