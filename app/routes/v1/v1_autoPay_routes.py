@@ -8,7 +8,7 @@ from pydantic import BaseModel
 from datetime import datetime
 from fastapi import APIRouter, UploadFile, File, Depends, HTTPException, Form
 
-router = APIRouter(prefix="/user-deposit-deeplink", tags=["Deposit Withdrawal"])
+router = APIRouter(prefix="/user-deposit-deeplink", tags=["Auto Pay UPI"])
 
 class CreatePaymentRequest(BaseModel):
     user_id: str
@@ -55,7 +55,7 @@ def create_payment(req: CreatePaymentRequest):
 
 @router.post("/payment/sms-webhook")
 def sms_webhook(req: SMSWebhookRequest):
-
+    print("Received SMS webhook:", req.to_dict())
     utr = req.ref_no
 
     # Find pending transaction with same amount (best guess match)

@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, Depends
-import datetime
+from datetime import datetime, timedelta
 from ...models import Bid, Wallet, Market
 from ...auth import get_current_user, require_admin
 
@@ -57,17 +57,67 @@ def validate_digit(game_type, digit):
 # PLACE BID API
 # ------------------------------
 
+def compute_status(open_time: str, close_time: str):
+    fmt = "%I:%M %p"
+    now = datetime.now()
+
+    # parse to time
+    open_t = datetime.strptime(open_time, fmt).time()
+    close_t = datetime.strptime(close_time, fmt).time()
+
+    # build datetime with today's date
+    open_dt = now.replace(hour=open_t.hour, minute=open_t.minute, second=0, microsecond=0)
+    close_dt = now.replace(hour=close_t.hour, minute=close_t.minute, second=0, microsecond=0)
+    midnight = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    next_midnight = midnight + timedelta(days=1)
+
+    # ----------------------------------------------------
+    # CASE A: Close time is SAME-DAY (close < 12 AM)
+    # ----------------------------------------------------
+    if close_dt > open_dt:  # normal same-day close
+
+        # Now < open_time → OPEN (rule: early morning open)
+        if now < open_dt:
+            return True
+
+        # open <= now <= close → OPEN
+        if open_dt <= now <= close_dt:
+            return True
+
+        # now > close → CLOSED until midnight
+        if now > close_dt:
+            return False
+
+    # ----------------------------------------------------
+    # CASE B: Close time NEXT DAY (close < open)
+    # ----------------------------------------------------
+    else:
+        # close is next-day
+        close_dt = close_dt + datetime.timedelta(days=1)
+
+        # open_time <= now <= close_time(next day) → OPEN
+        if open_dt <= now <= close_dt:
+            return True
+
+        # After close → CLOSED
+        if now > close_dt:
+            return False
+
+        # AFTER midnight but before open_time → OPEN
+        if midnight <= now < open_dt:
+            return True
+
 @router.post("/place")
 def place_bid(
     market_id: str,
     game_type: str,
     session: str,
     points: int,
-    digit: str = None,               # normal games
-    open_panna: str = None,          # for sangam
-    close_panna: str = None,         # for sangam
-    open_digit: str = None,          # for half_sangam
-    close_digit: str = None,         # for half_sangam
+    digit: str = None,
+    open_panna: str = None,
+    close_panna: str = None,
+    open_digit: str = None,
+    close_digit: str = None,
     user=Depends(get_current_user)
 ):
 
@@ -84,6 +134,37 @@ def place_bid(
     if not market:
         raise HTTPException(404, "Invalid Market ID")
 
+    # -------------------------
+    # TIME PARSING FIX
+    # -------------------------
+    def parse_time(t):
+        return datetime.strptime(t, "%I:%M %p").time()
+
+    now = datetime.now().time()
+    open_time = parse_time(market.open_time)
+    close_time = parse_time(market.close_time)
+
+    # -------------------------
+    # TIME LOGIC START
+    # -------------------------
+    # Case 1: Before open_time → only OPEN allowed
+    if now < open_time:
+        if session != "open":
+            raise HTTPException(400, "You can place only OPEN session before market open time")
+
+    # Case 2: Between open and close → only CLOSE allowed
+    elif open_time <= now <= close_time:
+        if session != "close":
+            raise HTTPException(400, "You can place only CLOSE session between open and close time")
+
+    # Case 3: After close_time → market closed
+    else:
+        raise HTTPException(400, "Market closed, cannot place bid now")
+
+    # -------------------------
+    # TIME LOGIC END
+    # -------------------------
+
     # Validate Game Type
     if game_type not in VALID_GAMES:
         raise HTTPException(400, "Invalid Game Type")
@@ -92,41 +173,32 @@ def place_bid(
     if session not in ["open", "close"]:
         raise HTTPException(400, "Invalid Session")
 
-    # -------------------------------------------------------------------
-    # 🔥 Sangam Digit Auto-Generate Logic
-    # -------------------------------------------------------------------
+    # -------------------------
+    # Sangam Logic
+    # -------------------------
     if game_type == "full_sangam":
         if not open_panna or not close_panna:
-            raise HTTPException(400, "Full Sangam requires open_panna and close_panna")
-
+            raise HTTPException(400, "Full Sangam requires open_panna & close_panna")
         digit = f"{open_panna}-{close_panna}"
 
     elif game_type == "half_sangam":
-
-        # CASE 1 → OPEN PANNA + CLOSE DIGIT
         if open_panna and close_digit:
             digit = f"{open_panna}-{close_digit}"
-
-        # CASE 2 → CLOSE PANNA + OPEN DIGIT
         elif close_panna and open_digit:
             digit = f"{close_panna}-{open_digit}"
-
         else:
-            raise HTTPException(400, "Half Sangam requires (open_panna + close_digit) OR (close_panna + open_digit)")
+            raise HTTPException(400, "Half Sangam requires panna+digit combination")
 
-    # For all other games → digit required normally
     elif digit is None:
         raise HTTPException(400, "Digit is required for this game type")
 
-    # -------------------------------------------
-    # 🔥 Validate final digit
-    # -------------------------------------------
+    # Digit validation
     validate_digit(game_type, digit)
 
-    # Deduct points
+    # Wallet Deduction
     wallet.update(
         dec__balance=points,
-        set__updated_at=datetime.datetime.utcnow()
+        set__updated_at=datetime.utcnow()
     )
 
     # Save Bid
@@ -151,7 +223,6 @@ def place_bid(
             "created_at": bid.created_at
         }
     }
-
 
 # ------------------------------
 # MY BIDS

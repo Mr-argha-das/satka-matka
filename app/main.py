@@ -22,6 +22,7 @@ origins = [
     "https://api.kalyanratan777.com",
     "http://localhost:5173",
     "http://127.0.0.1:5173",
+    "https://qbwm3635-5173.inc1.devtunnels.ms",
 ]
 app.add_middleware(
     CORSMiddleware,
@@ -62,7 +63,8 @@ from app.routes.v1 import (
     v1_game_godawari,
     v1_deposit,
     v1_refer_routes,
-    v1_devloper_routes
+    v1_devloper_routes,
+    v1_autoPay_routes
 )
 
 # -----------------------------
@@ -101,6 +103,7 @@ app.include_router(v1_game_godawari.router)
 app.include_router(v1_deposit.router)
 app.include_router(v1_refer_routes.router)
 app.include_router(v1_devloper_routes.router)
+app.include_router(v1_autoPay_routes.router)
 
 # -----------------------------
 # 6. ROOT API
