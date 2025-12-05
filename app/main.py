@@ -22,6 +22,7 @@ origins = [
     "https://api.kalyanratan777.com",
     "http://localhost:5173",
     "http://127.0.0.1:5173",
+    "https://qbwm3635-5173.inc1.devtunnels.ms",
 ]
 app.add_middleware(
     CORSMiddleware,
