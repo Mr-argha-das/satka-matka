@@ -48,6 +48,7 @@ class Transaction(Document):
     created_at = DateTimeField(default=datetime.datetime.utcnow)
     confirmed_at = DateTimeField()
     screenshot = StringField()
+    expires_at = DateTimeField(required=True)
 
 class Wallet(Document):
     user_id = StringField(required=True, unique=True)

@@ -5,9 +5,9 @@ from random import random
 import string
 from ...models import Wallet, Transaction
 from pydantic import BaseModel
-from datetime import datetime
+from datetime import datetime, timedelta
 from fastapi import APIRouter, UploadFile, File, Depends, HTTPException, Form
-
+from fastapi_utils.tasks import repeat_every
 router = APIRouter(prefix="/user-deposit-deeplink", tags=["Auto Pay UPI"])
 
 class CreatePaymentRequest(BaseModel):
@@ -33,23 +33,26 @@ def get_or_create_wallet(user_id):
 def create_payment(req: CreatePaymentRequest):
     txn_id = generate_txn_id()
 
-    # Save pending transaction
+    expires = datetime.utcnow() + timedelta(minutes=3)  # 3 min timeout
+
     Transaction(
         txn_id=txn_id,
         user_id=req.user_id,
         amount=req.amount,
-        status="pending"
+        status="pending",
+        expires_at=expires
     ).save()
 
-    upi_link = f"upi://pay?pa=2977654a@bandhan&pn=Abhay Prakash Koli&am=1&cu=INR&tn=Paying to Kalyan Ratan 777&tr={txn_id}"
-    
+    upi_link = (
+        f"upi://pay?pa=2977654a@bandhan&pn=Kalyan Ratan 777"
+        f"&am=1&cu=INR&tn=Paying to Kalyan Ratan 777&tr={txn_id}"
+    )
 
     return {
         "status": "pending",
         "txn_id": txn_id,
         "upi_link": upi_link
     }
-
 
 
 @router.post("/payment/sms-webhook")
@@ -105,3 +108,19 @@ def get_wallet(user_id: str):
         "user_id": wallet.user_id,
         "balance": wallet.balance
     }
+@router.on_event("startup")
+@repeat_every(seconds=30)  # every 30 sec auto check
+def auto_fail_pending_transactions():
+    now = datetime.utcnow()
+
+    # Find all expired pending transactions
+    expired_txns = Transaction.objects(
+        status="pending",
+        expires_at__lt=now
+    )
+
+    for txn in expired_txns:
+        txn.status = "FAILED"
+        txn.save()
+
+    print(f"Auto-Failed TXN Count: {len(expired_txns)}")
