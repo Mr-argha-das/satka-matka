@@ -5,7 +5,24 @@ from fastapi.staticfiles import StaticFiles
 from mongoengine import connect
 from app.config import settings
 import os
+from fastapi.responses import JSONResponse
+from starlette.middleware.base import BaseHTTPMiddleware
+class AddCORSHeadersMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        try:
+            response = await call_next(request)
+        except Exception as e:
+            # FORCE CORS even on error
+            response = JSONResponse(
+                status_code=500,
+                content={"error": str(e)}
+            )
 
+        response.headers["Access-Control-Allow-Origin"] = "*"
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+        response.headers["Access-Control-Allow-Headers"] = "*"
+        response.headers["Access-Control-Allow-Methods"] = "*"
+        return response
 # -----------------------------
 # 1. CONNECT MONGODB FIRST
 # -----------------------------
@@ -16,15 +33,17 @@ connect(host=settings.MONGO_URI)
 # -----------------------------
 app = FastAPI(title="Matka Satka Backend")
 
+
 # CORS settings
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],          # Allow ALL origins
+    allow_origins=["*"],
     allow_credentials=True,
-    allow_methods=["*"],          # Allow ALL methods
-    allow_headers=["*"],          # Allow ALL headers
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
+app.add_middleware(AddCORSHeadersMiddleware)
 
 # -----------------------------
 # 3. AFTER CONNECT -> IMPORT ROUTES
