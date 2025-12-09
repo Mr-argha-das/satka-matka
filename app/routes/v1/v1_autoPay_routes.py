@@ -95,7 +95,6 @@ def sms_webhook(req: SMSWebhookRequest):
     return {
         "status": txn.status,
         "message": "Transaction updated but wallet NOT credited",
-        "txn_id": txn.txn_id
     }
 
 
