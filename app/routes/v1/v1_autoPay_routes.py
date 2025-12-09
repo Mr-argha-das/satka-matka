@@ -1,7 +1,7 @@
 
 
 
-from random import random
+import random
 import string
 from ...models import Wallet, Transaction
 from pydantic import BaseModel
@@ -31,28 +31,33 @@ def get_or_create_wallet(user_id):
 
 @router.post("/payment/create")
 def create_payment(req: CreatePaymentRequest):
-    txn_id = generate_txn_id()
+    try:
+        txn_id = generate_txn_id()
 
-    expires = datetime.utcnow() + timedelta(minutes=3)  # 3 min timeout
+        expires = datetime.utcnow() + timedelta(minutes=3)  # 3 min timeout
 
-    Transaction(
+        Transaction(
         tx_id=txn_id,
         user_id=req.user_id,
         amount=req.amount,
         status="pending",
-        expires_at=expires
-    ).save()
+        expires_at=expires,
+        payment_method="UPI AutoPay"
+        ).save()
 
-    upi_link = (
+        upi_link = (
         f"upi://pay?pa=2977654a@bandhan&pn=Kalyan Ratan 777"
         f"&am=1&cu=INR&tn=Paying to Kalyan Ratan 777&tr={txn_id}"
-    )
+        )
 
-    return {
+        return {
         "status": "pending",
         "txn_id": txn_id,
         "upi_link": upi_link
-    }
+        }
+    except Exception as e:
+        print("Error in create_payment:", str(e))
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/payment/sms-webhook")
