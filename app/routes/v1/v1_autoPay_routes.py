@@ -54,7 +54,7 @@ def create_payment(req: CreatePaymentRequest):
 
 @router.post("/payment/sms-webhook")
 def sms_webhook(req: SMSWebhookRequest):
-    print("Received SMS webhook:", req.to_dict())
+
 
     # Find user pending transaction
     txn = Transaction.objects(
