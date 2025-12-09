@@ -88,7 +88,6 @@ def sms_webhook(req: SMSWebhookRequest):
         return {
             "status": "success",
             "message": "Wallet credited",
-            "txn_id": txn.txn_id,
             "new_balance": wallet.balance
         }
 
@@ -98,34 +97,7 @@ def sms_webhook(req: SMSWebhookRequest):
     }
 
 
-@router.post("/payment/sms-webhook")
-def sms_webhook(req: SMSWebhookRequest):
-    print("Received SMS webhook:", req.to_dict())
-  
 
-    # Find pending transaction with same amount (best guess match)
-    txn = Transaction.objects(amount=req.amount, status="pending", user_id=str(req.userId)).first()
-
-    if not txn:
-        return {"error": "Transaction not found"}
-
-    # Mark transaction success
-    txn.status = "SUCCESS"
-
-    txn.save()
-
-    # Add money to wallet
-    wallet = get_or_create_wallet(txn.user_id)
-    wallet.balance += txn.amount
-    wallet.updated_at = datetime.utcnow()
-    wallet.save()
-
-    return {
-        "status": "success",
-        "message": "Wallet credited",
-        "txn_id": txn.txn_id,
-        "new_balance": wallet.balance
-    }
 @router.get("/wallet/{user_id}")
 def get_wallet(user_id: str):
     wallet = get_or_create_wallet(user_id)
