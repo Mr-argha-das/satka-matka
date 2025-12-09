@@ -17,7 +17,7 @@ class CreatePaymentRequest(BaseModel):
 
 class SMSWebhookRequest(BaseModel):
     userId: str
-    amount: float
+    status: str
 
 def generate_txn_id():
     return "TXN" + ''.join(random.choices(string.digits, k=8))
@@ -41,7 +41,7 @@ def create_payment(req: CreatePaymentRequest):
         status="pending"
     ).save()
 
-    upi_link = f"upi://pay?pa=2977654a@bandhan&pn=Abhay Prakash Koli&am={req.amount}&cu=INR&tn=Paying to Kalyan Ratan 777&tr={txn_id}"
+    upi_link = f"upi://pay?pa=2977654a@bandhan&pn=Abhay Prakash Koli&am=1&cu=INR&tn=Paying to Kalyan Ratan 777&tr={txn_id}"
     
 
     return {
@@ -55,32 +55,49 @@ def create_payment(req: CreatePaymentRequest):
 @router.post("/payment/sms-webhook")
 def sms_webhook(req: SMSWebhookRequest):
     print("Received SMS webhook:", req.to_dict())
-    utr = req.ref_no
 
-    # Find pending transaction with same amount (best guess match)
-    txn =  Transaction.objects(status="pending", user_id=str(req.userId)).order_by("-created_at").first()
+    # Find user pending transaction
+    txn = Transaction.objects(
+        status="pending", 
+        user_id=str(req.userId)
+    ).order_by("-created_at").first()
 
     if not txn:
         return {"error": "Transaction not found"}
 
-    # Mark transaction success
-    txn.status = "SUCCESS"
-    txn.utr = utr
+    # Normalize incoming status
+    status = req.status.lower().strip()
+
+    # Map status
+    if status == "success":
+        txn.status = "SUCCESS"
+    elif status in ["submitted", "processing", "pending"]:
+        txn.status = "PENDING"
+    else:
+        txn.status = "FAILED"
+
     txn.save()
 
-    # Add money to wallet
-    wallet = get_or_create_wallet(txn.user_id)
-    wallet.balance += txn.amount
-    wallet.updated_at = datetime.utcnow()
-    wallet.save()
+    # Only SUCCESS should credit wallet
+    if txn.status == "SUCCESS":
+        wallet = get_or_create_wallet(txn.user_id)
+        wallet.balance += txn.amount
+        wallet.updated_at = datetime.utcnow()
+        wallet.save()
+
+        return {
+            "status": "success",
+            "message": "Wallet credited",
+            "txn_id": txn.txn_id,
+            "new_balance": wallet.balance
+        }
 
     return {
-        "status": "success",
-        "message": "Wallet credited",
-        "txn_id": txn.txn_id,
-        "utr": utr,
-        "new_balance": wallet.balance
+        "status": txn.status,
+        "message": "Transaction updated but wallet NOT credited",
+        "txn_id": txn.txn_id
     }
+
 
 @router.post("/payment/sms-webhook")
 def sms_webhook(req: SMSWebhookRequest):
