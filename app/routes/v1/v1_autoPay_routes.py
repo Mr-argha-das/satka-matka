@@ -36,7 +36,7 @@ def create_payment(req: CreatePaymentRequest):
     expires = datetime.utcnow() + timedelta(minutes=3)  # 3 min timeout
 
     Transaction(
-        txn_id=txn_id,
+        tx_id=txn_id,
         user_id=req.user_id,
         amount=req.amount,
         status="pending",
